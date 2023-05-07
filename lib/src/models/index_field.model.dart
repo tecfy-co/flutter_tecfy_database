@@ -24,4 +24,9 @@ class TecfyIndexField {
         "autoIncrement": autoIncrement,
         "isPrimaryKey": isPrimaryKey,
       };
+  Map<String, dynamic> toJsonEx() => {
+        "name": name,
+        "type": type.name.toUpperCase(),
+        "notnull": nullable == true ? 0 : 1,
+      };
 }

@@ -4,13 +4,14 @@ import 'package:tecfy_database/tecfy_database.dart';
 
 void main() {
   var db = TecfyDatabase(collections: [
-    TecfyCollection('persons', TecfyIndexFields: [
+    TecfyCollection('persons', tecfyIndexFields: [
       [
         TecfyIndexField(name: "job", type: FieldTypes.text, nullable: false),
         TecfyIndexField(name: "gender", type: FieldTypes.text, nullable: false),
       ],
       [TecfyIndexField(name: "age", type: FieldTypes.integer, asc: false)],
       [TecfyIndexField(name: "isActive", type: FieldTypes.boolean, asc: false)],
+      [TecfyIndexField(name: "Department", type: FieldTypes.text, asc: false)],
       [
         TecfyIndexField(
             name: "createdAt", type: FieldTypes.datetime, asc: false)
@@ -70,7 +71,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   var db = GetIt.I.get<TecfyDatabase>(instanceName: 'db');
 
-  void _incrementCounter({String functionName = 'search'}) async {
+  void _incrementCounter({String functionName = 'xx'}) async {
+    db.updateColumn('persons');
     switch (functionName) {
       case 'search':
         var result = await db.search(

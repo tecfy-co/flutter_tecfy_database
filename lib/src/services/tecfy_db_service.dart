@@ -45,6 +45,8 @@ class TecfyDatabase {
                   roll_no int not null,
                   address varchar(255) not null
               );
+
+              create column if not exisits department varchar(255) not null,
           ''');
           print("Table Created");
         });
@@ -97,14 +99,6 @@ class TecfyDatabase {
       }
     } catch (err) {
       throw Exception(err);
-    }
-  }
-
-  Future<void> deleteCollection({required String collectionName}) async {
-    try {
-      await _database?.execute("DROP TABLE IF EXISTS $collectionName");
-    } catch (e) {
-      throw Exception(e);
     }
   }
 
@@ -177,6 +171,7 @@ class TecfyDatabase {
         nullColumnHack: nullColumnHack,
         conflictAlgorithm: conflictAlgorithm,
       );
+
       print('inserted');
       if (result != 0) {
         _sendListersUpdate(collectionName, data);
@@ -188,6 +183,40 @@ class TecfyDatabase {
     } catch (e) {
       throw Exception(e.toString());
     }
+  }
+
+  void updateColumn(String tableName) async {
+    var result = (await _database?.rawQuery("PRAGMA table_info($tableName);"))
+        ?.map((e) =>
+            {'name': e['name'], 'type': e['type'], 'notnull': e['notnull']})
+        .toList();
+
+    // remove primary key column
+    result?.removeWhere((element) => element["name"] == _primaryKeyFieldName);
+
+    var ex = result?.where((element) =>
+        _TecfyIndexFields.any((elementX) => elementX.name != element['name']));
+    print('22${ex}');
+    // var ex2 = _TecfyIndexFields.where((element) =>
+    //     result?.contains((elementEx) => element.name != elementEx['name']) ??
+    //     false);
+    // print('223${ex2}');
+    // for (var tecfyIndex in _TecfyIndexFields) {
+    //   print('wwwww${tecfyIndex.name}');
+    //   print('wwwww${tecfyIndex.type.name.toUpperCase()}');
+    //   print('wwwww${(tecfyIndex.nullable == true ? 0 : 1)}');
+
+    //   var isChanged = result?.indexWhere((element) =>
+    //       (element['name'] != tecfyIndex.name) ||
+    //       (element['type'] != tecfyIndex.type.name.toUpperCase()) ||
+    //       (element['notnull'] != (tecfyIndex.nullable == true ? 0 : 1)));
+
+    //   if (isChanged != -1) {}
+    // }
+
+    // print(result);
+    // print('====----------------===================');
+    // print(_TecfyIndexFields.map((e) => e.toJson()));
   }
 
   Stream<List<Map<String, dynamic>>> searchListner(
@@ -353,8 +382,8 @@ class TecfyDatabase {
 
   String _getCommand(TecfyCollection element) {
     String command = "CREATE TABLE IF NOT EXISTS ${element.name}(";
-    bool TecfyIndexFieldsExisits = element.TecfyIndexFields != null &&
-        (element.TecfyIndexFields?.isNotEmpty ?? false);
+    bool tecfyIndexFieldsExisits = element.tecfyIndexFields != null &&
+        (element.tecfyIndexFields?.isNotEmpty ?? false);
     if (element.primaryField != null) {
       _TecfyIndexFields.add(element.primaryField!..isPrimaryKey = true);
       command +=
@@ -363,9 +392,9 @@ class TecfyDatabase {
       command += "id integer primary key AUTOINCREMENT not null,";
     }
 
-    if (TecfyIndexFieldsExisits) {
+    if (tecfyIndexFieldsExisits) {
       bool isFirstTime = true;
-      for (var singleIndexList in element.TecfyIndexFields!) {
+      for (var singleIndexList in element.tecfyIndexFields!) {
         if (!isFirstTime) {
           command += ",";
         }
@@ -377,9 +406,20 @@ class TecfyDatabase {
       }
     }
     command += ",tecfy_json_body text);";
+    // re-check for re create columns
+    // if (tecfyIndexFieldsExisits) {
+    //   for (var singleIndexList in element.tecfyIndexFields!) {
+    //     command += singleIndexList
+    //         .where((element) => element.isPrimaryKey == false)
+    //         .map((e) =>
+    //             "Alter table  ${element.name} Add Column ${e.name} ${e.type.name} ${e.nullable ? "" : 'not null'};")
+    //         .join('');
+    //   }
+    // }
+
     // create indexes
-    if (TecfyIndexFieldsExisits) {
-      for (var singleIndexList in element.TecfyIndexFields!) {
+    if (tecfyIndexFieldsExisits) {
+      for (var singleIndexList in element.tecfyIndexFields!) {
         // assign indexes values
         _TecfyIndexFields.addAll(singleIndexList);
         if (singleIndexList.length == 1) {
@@ -407,11 +447,13 @@ class TecfyDatabase {
         }
       }
     }
+    //TODO ADD DISTINCT TO LISt
 
     return command;
   }
 
   bool _isFilterApplied(Map<String, dynamic> document, ITecfyDbFilter filter) {
+    _database?.query('select true if 155>120');
     return true;
   }
 }
