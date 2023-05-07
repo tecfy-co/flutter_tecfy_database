@@ -1,5 +1,6 @@
 library tecfy_database;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -14,6 +15,7 @@ part 'src/services/tecfy_db_service.dart';
 part 'src/models/tecfy_collection.model.dart';
 part 'src/models/index_field.model.dart';
 part 'src/models/filter.model.dart';
+part 'src/models/listener.model.dart';
 
 // utils
 part 'src/utils//field_types.util.dart';

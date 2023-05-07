@@ -1,19 +1,20 @@
 part of tecfy_database;
 
 class TecfyDatabase {
-  static Database? _database;
-  static final List<TecfyIndexField> _TecfyIndexFields = [];
+  Database? _database;
+  final List<TecfyIndexField> _TecfyIndexFields = [];
 
-  TecfyDatabase({
-    required List<TecfyCollection> collections,
-  }) {
+  List<TecfyListener> listeners = [];
+
+  String? dbName;
+  TecfyDatabase({required List<TecfyCollection> collections, this.dbName}) {
     _initDb(collections: collections);
   }
 
   void _initDb({
     required List<TecfyCollection> collections,
   }) async {
-    String path = "tecfy_db.db";
+    String path = dbName ?? "tecfy_db.db";
     List<String> executeCommands = [];
     for (var element in collections) {
       executeCommands.add(_getCommand(element));
@@ -141,6 +142,9 @@ class TecfyDatabase {
       );
       print('updated');
       if (result != 0) {
+        listeners.where((l) => _isFilterApplied(data, l.filter)).forEach((l) {
+          l.sendUpdate();
+        });
         return true;
       } else {
         return false;
@@ -175,6 +179,8 @@ class TecfyDatabase {
       );
       print('inserted');
       if (result != 0) {
+        _sendListersUpdate(collectionName, data);
+
         return true;
       } else {
         return false;
@@ -182,6 +188,18 @@ class TecfyDatabase {
     } catch (e) {
       throw Exception(e.toString());
     }
+  }
+
+  Stream<List<Map<String, dynamic>>> searchListner(
+    String collectionName,
+    ITecfyDbFilter filter, {
+    String? orderBy,
+  }) {
+    var listner = StreamController<List<Map<String, dynamic>>>.broadcast();
+    listeners.add(
+        TecfyListener(this, collectionName, filter, listner, orderBy: orderBy));
+
+    return listner.stream;
   }
 
   /// Search is Worked for pre-definied indexes
@@ -208,6 +226,17 @@ class TecfyDatabase {
       offset: offset,
     );
     return _returnBody(result ?? []);
+  }
+
+  void _sendListersUpdate(String collection, dynamic document) {
+    listeners.removeWhere((l) => l.notifier.isClosed);
+    listeners
+        .where((l) =>
+            l.collectionName == collection &&
+            _isFilterApplied(document, l.filter))
+        .forEach((l) {
+      l.sendUpdate();
+    });
   }
 
   List<Map<String, dynamic>> _returnBody(List<Map<String, dynamic>> result) {
@@ -380,5 +409,9 @@ class TecfyDatabase {
     }
 
     return command;
+  }
+
+  bool _isFilterApplied(Map<String, dynamic> document, ITecfyDbFilter filter) {
+    return true;
   }
 }
