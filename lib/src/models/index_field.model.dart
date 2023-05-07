@@ -26,7 +26,7 @@ class TecfyIndexField {
       };
   Map<String, dynamic> toJsonEx() => {
         "name": name,
-        "type": type.name.toUpperCase(),
+        "type": type.name.toLowerCase(),
         "notnull": nullable == true ? 0 : 1,
       };
 }

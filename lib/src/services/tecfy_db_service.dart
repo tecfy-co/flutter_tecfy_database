@@ -187,16 +187,43 @@ class TecfyDatabase {
 
   void updateColumn(String tableName) async {
     var result = (await _database?.rawQuery("PRAGMA table_info($tableName);"))
-        ?.map((e) =>
-            {'name': e['name'], 'type': e['type'], 'notnull': e['notnull']})
+        ?.map((e) => {
+              'name': e['name'],
+              'type': (e['type'] as String).toLowerCase(),
+              'notnull': e['notnull']
+            })
         .toList();
-
+    result?.removeWhere((element) => element["name"] == 'tecfy_json_body');
     // remove primary key column
     result?.removeWhere((element) => element["name"] == _primaryKeyFieldName);
+    print(result);
+    print('==========================');
+    print(_TecfyIndexFields.map((e) => e.toJsonEx()).toList());
 
-    var ex = result?.where((element) =>
-        _TecfyIndexFields.any((elementX) => elementX.name != element['name']));
-    print('22${ex}');
+    var newIndexsList = _TecfyIndexFields.where((element) =>
+        !(result?.map((e) => e['name']).toList().contains(element.name) ??
+            false)).toList();
+    print(newIndexsList);
+
+    var deletedIndexesList = result
+        ?.where((element) => !(_TecfyIndexFields.map((e) => e.name)
+            .toList()
+            .contains(element['name'])))
+        .toList();
+    print(deletedIndexesList);
+
+    List updatedList = [];
+    for (var i = 0; i < _TecfyIndexFields.length - 1; i++) {
+      var check = !DeepCollectionEquality()
+          .equals(_TecfyIndexFields[i].toJsonEx(), result?[i]);
+
+      if (check) {
+        updatedList.add(_TecfyIndexFields[i].toJsonEx());
+      }
+    }
+
+    print(updatedList);
+
     // var ex2 = _TecfyIndexFields.where((element) =>
     //     result?.contains((elementEx) => element.name != elementEx['name']) ??
     //     false);

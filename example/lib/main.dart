@@ -7,11 +7,14 @@ void main() {
     TecfyCollection('persons', tecfyIndexFields: [
       [
         TecfyIndexField(name: "job", type: FieldTypes.text, nullable: false),
-        TecfyIndexField(name: "gender", type: FieldTypes.text, nullable: false),
+        TecfyIndexField(
+            name: "gender", type: FieldTypes.integer, nullable: false),
       ],
       [TecfyIndexField(name: "age", type: FieldTypes.integer, asc: false)],
       [TecfyIndexField(name: "isActive", type: FieldTypes.boolean, asc: false)],
-      [TecfyIndexField(name: "Department", type: FieldTypes.text, asc: false)],
+      [
+        TecfyIndexField(name: "isDeleted", type: FieldTypes.boolean, asc: false)
+      ],
       [
         TecfyIndexField(
             name: "createdAt", type: FieldTypes.datetime, asc: false)
