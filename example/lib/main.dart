@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:tecfy_database/tecfy_database.dart';
 
 void main() {
-  TecfyDbServices.initDb(collections: [
-    TecfyCollection('persons', indexFields: [
+  var db = TecfyDatabase(collections: [
+    TecfyCollection('persons', TecfyIndexFields: [
       [
-        IndexField(name: "job", type: FieldTypes.text, nullable: false),
-        IndexField(name: "gender", type: FieldTypes.text, nullable: false),
+        TecfyIndexField(name: "job", type: FieldTypes.text, nullable: false),
+        TecfyIndexField(name: "gender", type: FieldTypes.text, nullable: false),
       ],
-      [IndexField(name: "age", type: FieldTypes.integer, asc: false)],
-      [IndexField(name: "isActive", type: FieldTypes.boolean, asc: false)],
-      [IndexField(name: "createdAt", type: FieldTypes.datetime, asc: false)],
+      [TecfyIndexField(name: "age", type: FieldTypes.integer, asc: false)],
+      [TecfyIndexField(name: "isActive", type: FieldTypes.boolean, asc: false)],
+      [
+        TecfyIndexField(
+            name: "createdAt", type: FieldTypes.datetime, asc: false)
+      ],
     ])
   ]);
+
+  GetIt.I.registerSingleton<TecfyDatabase>(db, instanceName: 'db');
   runApp(const MyApp());
 }
 
@@ -62,57 +68,52 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
-  void _incrementCounter({String functionName = 'getDocuments'}) async {
-    TecfyDbServices.search(
-        'ssss',
-        TecfyDbAnd([
-          TecfyDbFilter('name', TecfyDbOperators.Equal, 'Mohamed'),
-          TecfyDbFilter('active', TecfyDbOperators.LessThanOrEqual, true),
-          TecfyDbOr([
-            TecfyDbFilter('department', TecfyDbOperators.Equal, 'HR'),
-            TecfyDbFilter('department', TecfyDbOperators.Equal, 'IT'),
-          ])
-        ]));
+  var db = GetIt.I.get<TecfyDatabase>(instanceName: 'db');
 
+  void _incrementCounter({String functionName = 'search'}) async {
     switch (functionName) {
+      case 'search':
+        var result = await db.search(
+            'persons',
+            TecfyDbFilter('createdAtX', TecfyDbOperators.isEqualTo,
+                DateTime.now().millisecondsSinceEpoch));
+        print('=-=-=-=-=-=-=-=-=-${result}');
+        break;
       case 'clearCollection':
-        await TecfyDbServices.clearCollection(
+        await db.clearCollection(
           collectionName: 'persons',
         );
         break;
       case 'insertDocument':
-        var insertResult = await TecfyDbServices.insertDocument(
-            collectionName: 'persons',
-            data: {
-              "job": "Tect2222",
-              "gender": "male",
-              "age": 11,
-              "isActive": true,
-              "createdAt": DateTime.now()
-            });
+        var insertResult =
+            await db.insertDocument(collectionName: 'persons', data: {
+          "job": "driver",
+          "gender": "male",
+          "age": 33,
+          "isActive": false,
+          "createdAt": DateTime.now()
+        });
         print('============> insert result ${insertResult}');
         break;
       case 'deleteDocument':
-        var result = await TecfyDbServices.deleteDocument(
+        var result = await db.deleteDocument(
             collectionName: 'persons', queryField: 'id', queryFieldValue: 1);
         print('=========>${result}');
         break;
       case 'updateDocument':
-        var result3 = await TecfyDbServices.updateDocument(
-            collectionName: 'persons',
-            data: {
-              "role_no": 1,
-              "job": "Tect2222 Updated",
-              "gender": "male",
-              "age": 11,
-              "isActive": true,
-              "createdAt": DateTime.now()
-            });
+        var result3 = await db.updateDocument(collectionName: 'persons', data: {
+          "role_no": 1,
+          "job": "Tect2222 Updated",
+          "gender": "male",
+          "age": 22,
+          "isActive": true,
+          "createdAt": DateTime.now()
+        });
         print('==-=-=-=-=-=-=-=${result3}');
         break;
       case 'getDocuments':
-        var result2 = await TecfyDbServices.getDocuments(
-            collectionName: 'persons', orderBy: 'age');
+        var result2 = await db.getDocuments(
+            collectionName: 'persons', orderBy: 'age desc');
         print('==-=-=-=-=-=-=-=${result2}');
         break;
     }
