@@ -13,6 +13,7 @@ part 'src/services/tecfy_db_service.dart';
 // models
 part 'src/models/tecfy_collection.model.dart';
 part 'src/models/index_field.model.dart';
+part 'src/models/filter.model.dart';
 
 // utils
 part 'src/utils//field_types.util.dart';

@@ -63,6 +63,17 @@ class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
   void _incrementCounter({String functionName = 'getDocuments'}) async {
+    TecfyDbServices.search(
+        'ssss',
+        TecfyDbAnd([
+          TecfyDbFilter('name', TecfyDbOperators.Equal, 'Mohamed'),
+          TecfyDbFilter('active', TecfyDbOperators.LessThanOrEqual, true),
+          TecfyDbOr([
+            TecfyDbFilter('department', TecfyDbOperators.Equal, 'HR'),
+            TecfyDbFilter('department', TecfyDbOperators.Equal, 'IT'),
+          ])
+        ]));
+
     switch (functionName) {
       case 'clearCollection':
         await TecfyDbServices.clearCollection(

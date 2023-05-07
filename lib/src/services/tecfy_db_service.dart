@@ -196,6 +196,41 @@ class TecfyDbServices {
     }
   }
 
+  static Future<List<Map<String, dynamic>>> search(
+      String collectionName, ITecfyDbFilter filter) async {
+    List<dynamic> params = [];
+    var sql = _filterToString(filter, params);
+    print(sql);
+    print(params);
+    _database?.query(collectionName, where: sql, whereArgs: params);
+    return [];
+  }
+
+  static String _filterToString(ITecfyDbFilter filter, List<dynamic> params) {
+    if (filter.type == ITecfyDbFilterTypes.filter) {
+      var f = filter as TecfyDbFilter;
+      if (f.operator == contains) // like
+        params.add('%${f.value}%');
+      else
+        params.add(f.value);
+
+      // name like '%Ahmed%'
+      // name like 'Ahmed%'
+
+      return '${f.field} ${f.operator} ?';
+    } else {
+      List<String> ands = [];
+      var f = filter.type == ITecfyDbFilterTypes.and
+          ? (filter as TecfyDbAnd).filters
+          : (filter as TecfyDbOr).filters;
+      for (var filt in f) {
+        ands.add(_filterToString(filt, params));
+      }
+
+      return '( ${ands.join(filter.type == ITecfyDbFilterTypes.and ? ' and ' : ' or ')} )';
+    }
+  }
+
   static dynamic _customEncode(dynamic item) {
     if (item is DateTime) {
       return item.millisecondsSinceEpoch;

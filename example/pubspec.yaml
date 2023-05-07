@@ -31,7 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   tecfy_database:
-    path: ../../tecfy_database
+    path: ..\
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
