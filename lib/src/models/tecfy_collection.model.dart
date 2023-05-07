@@ -2,15 +2,16 @@ part of tecfy_database;
 
 class TecfyCollection {
   String name;
-  IndexField? primaryField;
-  List<List<IndexField>>? indexFields;
+  TecfyIndexField? primaryField;
+  List<List<TecfyIndexField>>? TecfyIndexFields;
 
-  TecfyCollection(this.name, {this.primaryField, this.indexFields});
+  TecfyCollection(this.name, {this.primaryField, this.TecfyIndexFields});
 
   Map<String, dynamic> toJson() => {
         "name": name,
         "primaryField": primaryField?.toJson(),
-        "indexFields":
-            indexFields?.map((e) => e.map((w) => w.toJson()).toList()).toList()
+        "TecfyIndexFields":
+            TecfyIndexFields?.map((e) => e.map((w) => w.toJson()).toList())
+                .toList()
       };
 }

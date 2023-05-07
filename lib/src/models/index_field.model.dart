@@ -1,6 +1,6 @@
 part of tecfy_database;
 
-class IndexField {
+class TecfyIndexField {
   final String name;
   final FieldTypes type;
   final bool nullable;
@@ -8,7 +8,7 @@ class IndexField {
   final bool autoIncrement;
   bool isPrimaryKey = false;
 
-  IndexField({
+  TecfyIndexField({
     required this.name,
     required this.type,
     this.nullable = true,

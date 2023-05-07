@@ -1,9 +1,16 @@
 part of tecfy_database;
 
-class TecfyDbServices {
+class TecfyDatabase {
   static Database? _database;
-  static final List<IndexField> _indexFields = [];
-  static void initDb({
+  static final List<TecfyIndexField> _TecfyIndexFields = [];
+
+  TecfyDatabase({
+    required List<TecfyCollection> collections,
+  }) {
+    _initDb(collections: collections);
+  }
+
+  void _initDb({
     required List<TecfyCollection> collections,
   }) async {
     String path = "tecfy_db.db";
@@ -46,7 +53,12 @@ class TecfyDbServices {
     }
   }
 
-  static Future<List<Map<String, dynamic>>?> getDocuments({
+  void dispose() async {
+    await _database?.close();
+    _TecfyIndexFields.clear();
+  }
+
+  Future<List<Map<String, dynamic>>?> getDocuments({
     required String collectionName,
     String? groupBy,
     String? orderBy,
@@ -56,31 +68,7 @@ class TecfyDbServices {
               orderBy: orderBy, groupBy: groupBy) ??
           [];
 
-      var data = result.map((e) {
-        var data =
-            jsonDecode(e['tecfy_json_body'] as String) as Map<String, dynamic>;
-        if (primaryKeyIndex != -1) {
-          data[_indexFields[primaryKeyIndex].name] =
-              e[_indexFields[primaryKeyIndex].name];
-        } else {
-          data['id'] = e['id'];
-        }
-
-        return data;
-      }).toList();
-      var checkList = _indexFields
-          .where((element) => element.type.name == FieldTypes.datetime.name)
-          .toList();
-      if (checkList.isNotEmpty) {
-        for (var itemInCheckList in checkList) {
-          data = data.map((e) {
-            var value = e[itemInCheckList.name];
-            e[itemInCheckList.name] =
-                DateTime.fromMillisecondsSinceEpoch(value);
-            return e;
-          }).toList();
-        }
-      }
+      var data = _returnBody(result);
 
       return data;
     } catch (e) {
@@ -88,13 +76,13 @@ class TecfyDbServices {
     }
   }
 
-  static int get primaryKeyIndex =>
-      _indexFields.indexWhere((element) => element.isPrimaryKey == true);
+  int get _primaryKeyIndex =>
+      _TecfyIndexFields.indexWhere((element) => element.isPrimaryKey == true);
 
-  static String get primaryKeyFieldName =>
-      primaryKeyIndex == -1 ? 'id' : _indexFields[primaryKeyIndex].name;
+  String get _primaryKeyFieldName =>
+      _primaryKeyIndex == -1 ? 'id' : _TecfyIndexFields[_primaryKeyIndex].name;
 
-  static Future<bool> deleteDocument(
+  Future<bool> deleteDocument(
       {required String collectionName,
       required String queryField,
       required dynamic queryFieldValue}) async {
@@ -111,7 +99,7 @@ class TecfyDbServices {
     }
   }
 
-  static Future<void> deleteCollection({required String collectionName}) async {
+  Future<void> deleteCollection({required String collectionName}) async {
     try {
       await _database?.execute("DROP TABLE IF EXISTS $collectionName");
     } catch (e) {
@@ -119,7 +107,7 @@ class TecfyDbServices {
     }
   }
 
-  static Future<void> clearCollection({required String collectionName}) async {
+  Future<void> clearCollection({required String collectionName}) async {
     try {
       await _database?.execute("DELETE FROM $collectionName");
     } catch (e) {
@@ -127,7 +115,7 @@ class TecfyDbServices {
     }
   }
 
-  static Future<bool> updateDocument(
+  Future<bool> updateDocument(
       {required String collectionName,
       required Map<String, dynamic> data,
       Object? Function(Object?)? toEncodableEx,
@@ -137,7 +125,7 @@ class TecfyDbServices {
       if (body == null || body.isEmpty) {
         throw Exception('Wrong Body');
       }
-      if (!data.containsKey(primaryKeyFieldName)) {
+      if (!data.containsKey(_primaryKeyFieldName)) {
         throw Exception('to update document provide primary key field on it');
       }
       var result = await _database?.update(
@@ -147,8 +135,8 @@ class TecfyDbServices {
           "tecfy_json_body":
               jsonEncode(data, toEncodable: toEncodableEx ?? _customEncode)
         },
-        where: "$primaryKeyFieldName = ?",
-        whereArgs: [data[primaryKeyFieldName]],
+        where: "$_primaryKeyFieldName = ?",
+        whereArgs: [data[_primaryKeyFieldName]],
         conflictAlgorithm: conflictAlgorithm,
       );
       print('updated');
@@ -162,7 +150,7 @@ class TecfyDbServices {
     }
   }
 
-  static Future<bool> insertDocument(
+  Future<bool> insertDocument(
       {required String collectionName,
       required Map<String, dynamic> data,
       Object? Function(Object?)? toEncodableEx,
@@ -196,28 +184,74 @@ class TecfyDbServices {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> search(
-      String collectionName, ITecfyDbFilter filter) async {
+  /// Search is Worked for pre-definied indexes
+  Future<List<Map<String, dynamic>>> search(
+    String collectionName,
+    ITecfyDbFilter filter, {
+    String? groupBy,
+    String? having,
+    String? orderBy,
+    int? limit,
+    int? offset,
+  }) async {
     List<dynamic> params = [];
     var sql = _filterToString(filter, params);
     print(sql);
     print(params);
-    _database?.query(collectionName, where: sql, whereArgs: params);
-    return [];
+    var result = await _database?.query(
+      collectionName,
+      where: sql,
+      whereArgs: params,
+      groupBy: groupBy,
+      orderBy: orderBy,
+      limit: limit,
+      offset: offset,
+    );
+    return _returnBody(result ?? []);
   }
 
-  static String _filterToString(ITecfyDbFilter filter, List<dynamic> params) {
+  List<Map<String, dynamic>> _returnBody(List<Map<String, dynamic>> result) {
+    var data = result.map((e) {
+      var dataEx =
+          jsonDecode(e['tecfy_json_body'] as String) as Map<String, dynamic>;
+      if (_primaryKeyIndex != -1) {
+        dataEx[_TecfyIndexFields[_primaryKeyIndex].name] =
+            e[_TecfyIndexFields[_primaryKeyIndex].name];
+      } else {
+        dataEx['id'] = e['id'];
+      }
+
+      return dataEx;
+    }).toList();
+    var checkList = _TecfyIndexFields.where(
+        (element) => element.type.name == FieldTypes.datetime.name).toList();
+    if (checkList.isNotEmpty) {
+      for (var itemInCheckList in checkList) {
+        data = data.map((e) {
+          var value = e[itemInCheckList.name];
+          e[itemInCheckList.name] = DateTime.fromMillisecondsSinceEpoch(value);
+          return e;
+        }).toList();
+      }
+    }
+
+    return data;
+  }
+
+  String _filterToString(ITecfyDbFilter filter, List<dynamic> params) {
     if (filter.type == ITecfyDbFilterTypes.filter) {
       var f = filter as TecfyDbFilter;
-      if (f.operator == contains) // like
+      if (f.operator == TecfyDbOperators.startwith) {
+        params.add('${f.value}%');
+      } else if (f.operator == TecfyDbOperators.endwith) {
+        params.add('%${f.value}');
+      } else if (f.operator == TecfyDbOperators.contains) {
         params.add('%${f.value}%');
-      else
+      } else {
         params.add(f.value);
+      }
 
-      // name like '%Ahmed%'
-      // name like 'Ahmed%'
-
-      return '${f.field} ${f.operator} ?';
+      return '${f.field} ${_getFilterOperatorValue(f.operator)} ?';
     } else {
       List<String> ands = [];
       var f = filter.type == ITecfyDbFilterTypes.and
@@ -231,24 +265,53 @@ class TecfyDbServices {
     }
   }
 
-  static dynamic _customEncode(dynamic item) {
+  String _getFilterOperatorValue(TecfyDbOperators operator) {
+    switch (operator) {
+      case TecfyDbOperators.isEqualTo:
+        return '=';
+
+      case TecfyDbOperators.isNotEqualTo:
+        return '!=';
+
+      case TecfyDbOperators.isGreaterThan:
+        return '>';
+
+      case TecfyDbOperators.isGreaterThanOrEqualTo:
+        return '>=';
+
+      case TecfyDbOperators.isLessThan:
+        return '<';
+      case TecfyDbOperators.islessThanOrEqualTo:
+        return '<=';
+
+      case TecfyDbOperators.startwith:
+      case TecfyDbOperators.endwith:
+      case TecfyDbOperators.contains:
+        return 'like';
+
+      default:
+        return '';
+    }
+  }
+
+  dynamic _customEncode(dynamic item) {
     if (item is DateTime) {
       return item.millisecondsSinceEpoch;
     }
     return item;
   }
 
-  static Map<String, dynamic>? _getInsertedBody(Map<String, dynamic> data) {
+  Map<String, dynamic>? _getInsertedBody(Map<String, dynamic> data) {
     Map<String, dynamic> result = {};
-    for (var indexField in _indexFields) {
-      if (indexField.type.name == FieldTypes.boolean.name) {
-        var value = data[indexField.name] == true ? 1 : 0;
-        result[indexField.name] = value;
-      } else if (indexField.type.name == FieldTypes.datetime.name) {
-        var value = data[indexField.name].millisecondsSinceEpoch;
-        result[indexField.name] = value;
+    for (var TecfyIndexField in _TecfyIndexFields) {
+      if (TecfyIndexField.type.name == FieldTypes.boolean.name) {
+        var value = data[TecfyIndexField.name] == true ? 1 : 0;
+        result[TecfyIndexField.name] = value;
+      } else if (TecfyIndexField.type.name == FieldTypes.datetime.name) {
+        var value = data[TecfyIndexField.name].millisecondsSinceEpoch;
+        result[TecfyIndexField.name] = value;
       } else {
-        result[indexField.name] = data[indexField.name];
+        result[TecfyIndexField.name] = data[TecfyIndexField.name];
       }
     }
 
@@ -259,21 +322,21 @@ class TecfyDbServices {
     }
   }
 
-  static String _getCommand(TecfyCollection element) {
+  String _getCommand(TecfyCollection element) {
     String command = "CREATE TABLE IF NOT EXISTS ${element.name}(";
-    bool indexFieldsExisits = element.indexFields != null &&
-        (element.indexFields?.isNotEmpty ?? false);
+    bool TecfyIndexFieldsExisits = element.TecfyIndexFields != null &&
+        (element.TecfyIndexFields?.isNotEmpty ?? false);
     if (element.primaryField != null) {
-      _indexFields.add(element.primaryField!..isPrimaryKey = true);
+      _TecfyIndexFields.add(element.primaryField!..isPrimaryKey = true);
       command +=
           "${element.primaryField?.name} ${element.primaryField?.type.name} primary key ${(element.primaryField?.autoIncrement ?? false) ? "AUTOINCREMENT" : ""},";
     } else {
       command += "id integer primary key AUTOINCREMENT not null,";
     }
 
-    if (indexFieldsExisits) {
+    if (TecfyIndexFieldsExisits) {
       bool isFirstTime = true;
-      for (var singleIndexList in element.indexFields!) {
+      for (var singleIndexList in element.TecfyIndexFields!) {
         if (!isFirstTime) {
           command += ",";
         }
@@ -286,10 +349,10 @@ class TecfyDbServices {
     }
     command += ",tecfy_json_body text);";
     // create indexes
-    if (indexFieldsExisits) {
-      for (var singleIndexList in element.indexFields!) {
+    if (TecfyIndexFieldsExisits) {
+      for (var singleIndexList in element.TecfyIndexFields!) {
         // assign indexes values
-        _indexFields.addAll(singleIndexList);
+        _TecfyIndexFields.addAll(singleIndexList);
         if (singleIndexList.length == 1) {
           command += singleIndexList
               .map((e) =>

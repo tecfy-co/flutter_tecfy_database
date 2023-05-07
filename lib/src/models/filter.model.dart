@@ -24,6 +24,16 @@ class TecfyDbOr extends ITecfyDbFilter {
   TecfyDbOr(this.filters) : super(ITecfyDbFilterTypes.or);
 }
 
-enum TecfyDbOperators { Equal, LessThanOrEqual }
+enum TecfyDbOperators {
+  isEqualTo,
+  isNotEqualTo,
+  isGreaterThan,
+  isGreaterThanOrEqualTo,
+  isLessThan,
+  islessThanOrEqualTo,
+  startwith,
+  endwith,
+  contains,
+}
 
 enum ITecfyDbFilterTypes { filter, and, or }
