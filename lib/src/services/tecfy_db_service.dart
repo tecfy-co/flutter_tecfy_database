@@ -72,7 +72,7 @@ class TecfyDatabase {
               orderBy: orderBy, groupBy: groupBy) ??
           [];
 
-      var data = _returnBody(result);
+      var data = _returnBody(collectionName, result);
 
       return data;
     } catch (e) {
@@ -119,7 +119,7 @@ class TecfyDatabase {
       Object? Function(Object?)? toEncodableEx,
       ConflictAlgorithm? conflictAlgorithm}) async {
     try {
-      var body = _getInsertedBody(data);
+      var body = _getInsertedBody(collectionName, data);
       if (body == null || body.isEmpty) {
         throw Exception('Wrong Body');
       }
@@ -158,7 +158,7 @@ class TecfyDatabase {
       String? nullColumnHack,
       ConflictAlgorithm? conflictAlgorithm}) async {
     try {
-      var body = _getInsertedBody(data);
+      var body = _getInsertedBody(collectionName, data);
       var result = await _database?.insert(
         collectionName,
         body != null
@@ -201,7 +201,7 @@ class TecfyDatabase {
         .where((element) => !dbIndexesName.contains(element))
         .toList();
 
-    for (var newIndex in _indexs) {
+    for (var newIndex in (_indexs[tableName] as List)) {
       var indName = _getIndexName(newIndex);
       if (!indexedNeedToBeCreated.contains(indName)) continue;
       await _database?.rawQuery(
@@ -220,9 +220,9 @@ class TecfyDatabase {
     }
   }
 
-  List<String> _getNewIndexesNames() {
+  List<String> _getNewIndexesNames(String tableName) {
     List<String> result = [];
-    for (var ind in _indexs) {
+    for (var ind in (_indexs[tableName] as List)) {
       result.add(_getIndexName(ind));
     }
     return result;
@@ -238,7 +238,7 @@ class TecfyDatabase {
 
   void updateColumns(String tableName) async {
     var dbIndexesName = await dbIndexesNames(tableName);
-    var newIndexesName = _getNewIndexesNames();
+    var newIndexesName = _getNewIndexesNames(tableName);
 
     _dropUnusedIndexes(tableName, dbIndexesName, newIndexesName);
 
@@ -284,10 +284,11 @@ class TecfyDatabase {
 
   Future<void> _removeOldValueUpdate(String tableName,
       List<TecfyIndexField>? dbColumns, List<String>? dbIndexes) async {
-    var oldIndexesNamesList = _columns.map((e) => e.name).toList();
+    var oldIndexesNamesList = _columns[tableName]?.map((e) => e.name).toList();
 
     var deletedIndexesList = dbColumns
-        ?.where((element) => !(oldIndexesNamesList.contains(element.name)))
+        ?.where((element) =>
+            !(oldIndexesNamesList?.contains(element.name) ?? false))
         .toList();
     if (deletedIndexesList?.isNotEmpty ?? false) {
       for (var deletedIndexe in deletedIndexesList!) {
@@ -327,16 +328,16 @@ class TecfyDatabase {
   Future<void> _addNewValueUpdate(
       String tableName, List<TecfyIndexField>? dbColumns) async {
     var dbColumnNamesList = dbColumns?.map((e) => e.name).toList();
-    var newIndexsList = _columns
-        .where(
+    var newIndexsList = _columns[tableName]
+        ?.where(
             (element) => !(dbColumnNamesList?.contains(element.name) ?? false))
         .toList();
-    if (newIndexsList.isNotEmpty) {
-      for (var newIndex in newIndexsList) {
+    if (newIndexsList?.isNotEmpty ?? false) {
+      for (var newIndex in newIndexsList ?? []) {
         await _database?.rawQuery(
             'ALTER TABLE $tableName ADD COLUMN ${newIndex.name} ${newIndex.type.name}');
 
-        var newIndexsListEx = _indexs
+        var newIndexsListEx = _indexs[tableName]
             ?.where((element) => element
                     .where((elementEx) => elementEx.name == newIndex.name)
                     .isNotEmpty
@@ -399,7 +400,7 @@ class TecfyDatabase {
       limit: limit,
       offset: offset,
     );
-    return _returnBody(result ?? []);
+    return _returnBody(collectionName, result ?? []);
   }
 
   void _sendListersUpdate(String collection, dynamic document) {
@@ -413,24 +414,25 @@ class TecfyDatabase {
     });
   }
 
-  List<Map<String, dynamic>> _returnBody(List<Map<String, dynamic>> result) {
+  List<Map<String, dynamic>> _returnBody(
+      String tableName, List<Map<String, dynamic>> result) {
     var data = result.map((e) {
       var dataEx =
           jsonDecode(e['tecfy_json_body'] as String) as Map<String, dynamic>;
       if (_primaryKeyIndex != -1) {
-        dataEx[_columns[_primaryKeyIndex].name] =
-            e[_columns[_primaryKeyIndex].name];
+        dataEx[_columns[tableName]![_primaryKeyIndex(tableName)].name] =
+            e[_columns[tableName]![_primaryKeyIndex(tableName)].name];
       } else {
         dataEx['id'] = e['id'];
       }
 
       return dataEx;
     }).toList();
-    var checkList = _columns
-        .where((element) => element.type.name == FieldTypes.datetime.name)
+    var checkList = _columns[tableName]
+        ?.where((element) => element.type.name == FieldTypes.datetime.name)
         .toList();
-    if (checkList.isNotEmpty) {
-      for (var itemInCheckList in checkList) {
+    if (checkList?.isNotEmpty ?? false) {
+      for (var itemInCheckList in checkList ?? []) {
         data = data.map((e) {
           var value = e[itemInCheckList.name];
           e[itemInCheckList.name] = DateTime.fromMillisecondsSinceEpoch(value);
@@ -505,9 +507,10 @@ class TecfyDatabase {
     return item;
   }
 
-  Map<String, dynamic>? _getInsertedBody(Map<String, dynamic> data) {
+  Map<String, dynamic>? _getInsertedBody(
+      String tableName, Map<String, dynamic> data) {
     Map<String, dynamic> result = {};
-    for (var TecfyIndexField in _columns) {
+    for (var TecfyIndexField in _columns[tableName] ?? []) {
       if (TecfyIndexField.type.name == FieldTypes.boolean.name) {
         var value = data[TecfyIndexField.name] == true ? 1 : 0;
         result[TecfyIndexField.name] = value;
@@ -531,7 +534,8 @@ class TecfyDatabase {
     bool tecfyIndexFieldsExisits = element.tecfyIndexFields != null &&
         (element.tecfyIndexFields?.isNotEmpty ?? false);
     if (element.primaryField != null) {
-      _columns.add(element.primaryField!..isPrimaryKey = true);
+      _columns[element.name] ??= [];
+      _columns[element.name]?.add(element.primaryField!..isPrimaryKey = true);
       command +=
           "${element.primaryField?.name} ${element.primaryField?.type.name} primary key ${(element.primaryField?.autoIncrement ?? false) ? "AUTOINCREMENT" : ""},";
     } else {
@@ -565,39 +569,30 @@ class TecfyDatabase {
 
     // create indexes
     if (tecfyIndexFieldsExisits) {
-      _indexs = element.tecfyIndexFields ?? [];
+      _indexs[element.name] = element.tecfyIndexFields ?? [];
       for (var singleIndexList in element.tecfyIndexFields!) {
         // assign indexes and columns values
 
-        _columns.addAll(singleIndexList);
+        _columns[element.name] = singleIndexList;
         if (singleIndexList.length == 1) {
           command += singleIndexList
-              .map((e) =>
-                  "CREATE INDEX idx_${_getIndexName(e)} ON ${element.name} (${e.name});")
+              .map((e) => "CREATE INDEX ${_getIndexName([
+                        e
+                      ])} ON ${element.name} (${e.name});")
               .toList()
               .join(';');
         } else {
           var elmentNames = "";
-          var queryElmentName = "";
-          bool isFirstTimeEx = true;
 
-          for (var singleIndex in singleIndexList) {
-            if (!isFirstTimeEx) {
-              queryElmentName += ",";
-              elmentNames += "_";
-            }
-            elmentNames += '${_getIndexName(singleIndex)}';
-            queryElmentName +=
-                "${singleIndex.name} ${!singleIndex.asc ? "DESC" : ""}";
-            isFirstTimeEx = false;
-          }
+          elmentNames += '${_getIndexName(singleIndexList)}';
+
           command +=
-              "CREATE INDEX idx_$elmentNames ON ${element.name} ($queryElmentName);";
+              "CREATE INDEX $elmentNames ON ${element.name} (${singleIndexList.map((e) => "${e.name} ${!e.asc ? "DESC" : ""}").join(',')});";
         }
       }
     }
     //TODO ADD DISTINCT TO LISt
-
+    print(command);
     return command;
   }
 
