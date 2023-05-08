@@ -7,14 +7,16 @@ void main() {
     TecfyCollection('persons', tecfyIndexFields: [
       [
         TecfyIndexField(name: "job", type: FieldTypes.text, nullable: false),
-        TecfyIndexField(
-            name: "gender", type: FieldTypes.integer, nullable: false),
+        TecfyIndexField(name: "gender", type: FieldTypes.text, nullable: false),
       ],
-      [TecfyIndexField(name: "age", type: FieldTypes.integer, asc: false)],
+      // [TecfyIndexField(name: "age", type: FieldTypes.integer, asc: false)],
+      // [
+      //   TecfyIndexField(
+      //       name: "testField", type: FieldTypes.integer, asc: false),
+      //   // TecfyIndexField(
+      //   //     name: "testField2", type: FieldTypes.integer, asc: false)
+      // ],
       [TecfyIndexField(name: "isActive", type: FieldTypes.boolean, asc: false)],
-      [
-        TecfyIndexField(name: "isDeleted", type: FieldTypes.boolean, asc: false)
-      ],
       [
         TecfyIndexField(
             name: "createdAt", type: FieldTypes.datetime, asc: false)
@@ -23,6 +25,7 @@ void main() {
   ]);
 
   GetIt.I.registerSingleton<TecfyDatabase>(db, instanceName: 'db');
+
   runApp(const MyApp());
 }
 
@@ -75,7 +78,8 @@ class _MyHomePageState extends State<MyHomePage> {
   var db = GetIt.I.get<TecfyDatabase>(instanceName: 'db');
 
   void _incrementCounter({String functionName = 'xx'}) async {
-    db.updateColumn('persons');
+    db.updateColumns('persons');
+    // db.clearCollection(collectionName: 'persons');
     switch (functionName) {
       case 'search':
         var result = await db.search(

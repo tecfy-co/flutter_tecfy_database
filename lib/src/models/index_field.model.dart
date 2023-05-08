@@ -1,6 +1,6 @@
 part of tecfy_database;
 
-class TecfyIndexField {
+class TecfyIndexField with EquatableMixin {
   final String name;
   final FieldTypes type;
   final bool nullable;
@@ -24,9 +24,7 @@ class TecfyIndexField {
         "autoIncrement": autoIncrement,
         "isPrimaryKey": isPrimaryKey,
       };
-  Map<String, dynamic> toJsonEx() => {
-        "name": name,
-        "type": type.name.toLowerCase(),
-        "notnull": nullable == true ? 0 : 1,
-      };
+
+  @override
+  List<Object?> get props => [name, type.name, nullable];
 }

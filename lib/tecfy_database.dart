@@ -2,7 +2,9 @@ library tecfy_database;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:html';
 
+import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
