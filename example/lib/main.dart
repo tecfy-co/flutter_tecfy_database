@@ -4,24 +4,35 @@ import 'package:tecfy_database/tecfy_database.dart';
 
 void main() {
   var db = TecfyDatabase(collections: [
-    TecfyCollection('persons', tecfyIndexFields: [
-      [
-        TecfyIndexField(name: "job", type: FieldTypes.text, nullable: false),
-        TecfyIndexField(name: "gender", type: FieldTypes.text, nullable: false),
-      ],
-      // [TecfyIndexField(name: "age", type: FieldTypes.integer, asc: false)],
-      // [
-      //   TecfyIndexField(
-      //       name: "testField", type: FieldTypes.integer, asc: false),
-      //   // TecfyIndexField(
-      //   //     name: "testField2", type: FieldTypes.integer, asc: false)
-      // ],
-      [TecfyIndexField(name: "isActive", type: FieldTypes.boolean, asc: false)],
-      [
-        TecfyIndexField(
-            name: "createdAt", type: FieldTypes.datetime, asc: false)
-      ],
-    ])
+    TecfyCollection('persons',
+        // primaryField: TecfyIndexField(
+        //     name: "roll_no",
+        //     type: FieldTypes.integer,
+        //     nullable: false,
+        //     autoIncrement: true),
+        tecfyIndexFields: [
+          [
+            TecfyIndexField(
+                name: "job", type: FieldTypes.text, nullable: false),
+            TecfyIndexField(
+                name: "gender", type: FieldTypes.integer, nullable: false),
+          ],
+          [TecfyIndexField(name: "age", type: FieldTypes.text, asc: false)],
+          // [
+          //   TecfyIndexField(
+          //       name: "testField", type: FieldTypes.integer, asc: false),
+          //   TecfyIndexField(
+          //       name: "testField2", type: FieldTypes.integer, asc: false)
+          // ],
+          [
+            TecfyIndexField(
+                name: "isActive", type: FieldTypes.boolean, asc: false)
+          ],
+          [
+            TecfyIndexField(
+                name: "createdAt", type: FieldTypes.datetime, asc: false)
+          ],
+        ])
   ]);
 
   GetIt.I.registerSingleton<TecfyDatabase>(db, instanceName: 'db');
@@ -78,7 +89,8 @@ class _MyHomePageState extends State<MyHomePage> {
   var db = GetIt.I.get<TecfyDatabase>(instanceName: 'db');
 
   void _incrementCounter({String functionName = 'xx'}) async {
-    db.updateColumns('persons');
+    db.dbColumnsSpecs('persons');
+    // db.updateColumnsAndIndexs('persons');
     // db.clearCollection(collectionName: 'persons');
     switch (functionName) {
       case 'search':

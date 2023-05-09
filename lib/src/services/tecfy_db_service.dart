@@ -2,8 +2,9 @@ part of tecfy_database;
 
 class TecfyDatabase {
   Database? _database;
-  final Map<String, List<TecfyIndexField>> _columns = {};
-  Map<String, List<List<TecfyIndexField>>> _indexs = {};
+  final Map<String, List<TecfyIndexField?>> _columns = {};
+  final Map<String, List<TecfyIndexField>> _newcolumns = {};
+  final Map<String, List<List<TecfyIndexField>>> _indexs = {};
 
   List<TecfyListener> listeners = [];
 
@@ -16,23 +17,23 @@ class TecfyDatabase {
     required List<TecfyCollection> collections,
   }) async {
     String path = dbName ?? "tecfy_db.db";
-    List<String> executeCommands = [];
-    for (var element in collections) {
-      executeCommands.add(_getCommand(element));
-    }
 
     try {
       if (kIsWeb) {
         var factory = databaseFactoryFfiWeb;
         _database = await factory.openDatabase(path,
             options: OpenDatabaseOptions(
-                version: 3,
-                onCreate: (db, version) async {
-                  for (var executeCommand in executeCommands) {
-                    await db.execute(executeCommand);
-                  }
-                  print("Table Created");
-                }));
+              version: 3,
+            ));
+
+        for (var collection in collections) {
+          var createCommand = _getCreationCollectionCommandAndOps(collection);
+          await _checkPrimaryKeyChanged(collection.name);
+          await _database?.execute(createCommand);
+          await updateColumnsAndIndexs(collection.name);
+        }
+
+        print("Table Created");
       } else {
         String databasesPath = await getDatabasesPath();
         String dbPath = '${databasesPath}path';
@@ -81,12 +82,12 @@ class TecfyDatabase {
   }
 
   int _primaryKeyIndex(String collectionName) => _columns[collectionName]!
-      .indexWhere((element) => element.isPrimaryKey == true);
+      .indexWhere((element) => element?.isPrimaryKey == true);
 
   String _primaryKeyFieldName(String collectionName) =>
       _primaryKeyIndex(collectionName) == -1
           ? 'id'
-          : _columns[collectionName]![_primaryKeyIndex(collectionName)].name;
+          : _columns[collectionName]![_primaryKeyIndex(collectionName)]!.name;
 
   Future<bool> deleteDocument(
       {required String collectionName,
@@ -195,12 +196,12 @@ class TecfyDatabase {
     return result ?? [];
   }
 
-  void _createIndexes(String tableName, List<String> dbIndexesName,
+  Future<void> _createIndexes(String tableName, List<String> dbIndexesName,
       List<String> newIndexesName) async {
     var indexedNeedToBeCreated = newIndexesName
         .where((element) => !dbIndexesName.contains(element))
         .toList();
-
+    if (indexedNeedToBeCreated.isEmpty) return;
     for (var newIndex in (_indexs[tableName] as List)) {
       var indName = _getIndexName(newIndex);
       if (!indexedNeedToBeCreated.contains(indName)) continue;
@@ -209,7 +210,7 @@ class TecfyDatabase {
     }
   }
 
-  void _dropUnusedIndexes(String tableName, List<String> dbIndexesName,
+  Future<void> _dropUnusedIndexes(String tableName, List<String> dbIndexesName,
       List<String> newIndexesName) async {
     var unUsedIndexes = dbIndexesName
         .where((element) => !newIndexesName.contains(element))
@@ -236,132 +237,102 @@ class TecfyDatabase {
     return 'idx_' + userIndexeNames.join('_');
   }
 
-  void updateColumns(String tableName) async {
-    var dbIndexesName = await dbIndexesNames(tableName);
-    var newIndexesName = _getNewIndexesNames(tableName);
+  Future<List<TecfyIndexField>?> dbColumnsSpecs(String tableName,
+      {bool removePrimarykeyAndJsonColumns = true}) async {
+    var dbColumns =
+        (await _database?.rawQuery("PRAGMA table_info($tableName);"))
+            ?.map((e) => TecfyIndexField(
+                name: e['name'] as String,
+                type: FieldTypes.values.firstWhere((element) =>
+                    element.name.toLowerCase() ==
+                    (e['type'] as String).toLowerCase()),
+                nullable: e['notnull'] == 1 ? false : true)
+              ..isPrimaryKey = e['pk'] == 1 ? true : false)
+            .toList();
+    if (removePrimarykeyAndJsonColumns) {
+      dbColumns?.removeWhere((element) => element.name == 'tecfy_json_body');
+      // remove primary key column
+      dbColumns?.removeWhere(
+          (element) => element.name == _primaryKeyFieldName(tableName));
+    }
 
-    _dropUnusedIndexes(tableName, dbIndexesName, newIndexesName);
-
-    // var dbIndexes =
-    //     (await _database?.rawQuery("PRAGMA index_list($tableName);"))
-    //         ?.map((e) => e['name'].toString())
-    //         .toList();
-    // print('=============indexes ${dbIndexes}');
-    // var dbColumns =
-    //     (await _database?.rawQuery("PRAGMA table_info($tableName);"))
-    //         ?.map((e) => TecfyIndexField(
-    //             name: e['name'] as String,
-    //             type: FieldTypes.values.firstWhere((element) =>
-    //                 element.name.toLowerCase() ==
-    //                 (e['type'] as String).toLowerCase()),
-    //             nullable: e['notnull'] == 1 ? false : true))
-    //         .toList();
-    // dbColumns?.removeWhere((element) => element.name == 'tecfy_json_body');
-    // // remove primary key column
-    // dbColumns?.removeWhere((element) => element.name == _primaryKeyFieldName);
-
-    // // for add new value
-    // await _addNewValueUpdate(tableName, dbColumns);
-
-    // // for remove old value
-    // await _removeOldValueUpdate(tableName, dbColumns, dbIndexes);
-    // // var sortedUserIndexes =
-    // //     _TecfyIndexFields.sorted((e, b) => e.name.compareTo(b.name));
-    // // var sortedDbIndexes = result?.sorted((e, b) => e.name.compareTo(b.name));
-    // // for (var i = 0; i < _TecfyIndexFields.length - 1; i++) {
-    // //   print('======1${sortedUserIndexes[i]}');
-    // //   print('======2${sortedDbIndexes?[i]}');
-    // //   if ((sortedUserIndexes[i].name == sortedDbIndexes?[i].name) &&
-    // //       sortedUserIndexes[i] != sortedDbIndexes?[i]) {
-    // //     await _database?.rawQuery(
-    // //         'ALTER TABLE $tableName DROP COLUMN ${sortedDbIndexes?[i].name}');
-    // //     await _database?.rawQuery(
-    // //         'ALTER TABLE $tableName ADD COLUMN ${sortedUserIndexes[i].name} ${sortedUserIndexes[i].type.name}');
-    // //   }
-    // // }
-    // _createIndexes(tableName, dbIndexesName, newIndexesName);
+    return dbColumns;
   }
 
-  Future<void> _removeOldValueUpdate(String tableName,
-      List<TecfyIndexField>? dbColumns, List<String>? dbIndexes) async {
-    var oldIndexesNamesList = _columns[tableName]?.map((e) => e.name).toList();
+  Future<void> updateColumnsAndIndexs(String collectionName) async {
+    var dbIndexesName = await dbIndexesNames(collectionName);
+    var newIndexesName = _getNewIndexesNames(collectionName);
+    var dbColumns = await dbColumnsSpecs(collectionName);
+    if (_primaryKeyFieldName(collectionName) != 'id') {
+      _columns[collectionName]?.removeWhere(
+          (element) => element?.name == _primaryKeyFieldName(collectionName));
+    }
+    await _dropUnusedIndexes(collectionName, dbIndexesName, newIndexesName);
 
-    var deletedIndexesList = dbColumns
-        ?.where((element) =>
-            !(oldIndexesNamesList?.contains(element.name) ?? false))
-        .toList();
-    if (deletedIndexesList?.isNotEmpty ?? false) {
-      for (var deletedIndexe in deletedIndexesList!) {
-        var values = dbIndexes
-            ?.where((element) => element.contains(deletedIndexe.name))
-            .toList();
+    await _dropOldColumn(collectionName, dbColumns);
 
-        for (var value in values ?? []) {
-          if (value.split('_').length == 2) {
-            await _database?.rawQuery("DROP INDEX idx$value");
-          } else {}
+    await _createNewColumn(collectionName, dbColumns);
+
+    await _createIndexes(collectionName, dbIndexesName, newIndexesName);
+    print('=======db indexes ${dbIndexesName}');
+    print('=======db columns ${dbColumns}');
+
+    await _updatedNewColumnsValues(collectionName);
+  }
+
+  Future<void> _updatedNewColumnsValues(String collectionName) async {
+    if (_newcolumns[collectionName]?.isEmpty ?? false) return;
+
+    var rowValues = await _database?.rawQuery('Select * from $collectionName');
+
+    for (var rowValue in rowValues!) {
+      var value = (jsonDecode(rowValue['tecfy_json_body'] as String)
+          as Map<String, dynamic>);
+
+      var isUpdated = false;
+      for (var newColumn in _newcolumns[collectionName]!) {
+        try {
+          if (rowValue[newColumn.name] != value[newColumn.name]) {
+            rowValue[newColumn.name] == value[newColumn.name];
+            isUpdated = true;
+          }
+        } catch (e) {
+          print('Exception : ${e}');
         }
-
-        await _database?.rawQuery(
-            'ALTER TABLE $tableName DROP COLUMN ${deletedIndexe.name}');
-
-        // var deletedIndexsListEx = _indexs
-        //     ?.where((element) => element
-        //             .where((elementEx) => elementEx.name == deletedIndexe.name)
-        //             .isNotEmpty
-        //         ? true
-        //         : false)
-        //     .toList();
-
-        // var elmentNames = '';
-
-        // for (var deletedIndexsEx in deletedIndexsListEx!) {
-        //   for (var deletedIndex in deletedIndexsEx) {
-        //     elmentNames += '_${deletedIndex.name}';
-        //   }
-        //   // await _database?.rawQuery("DROP INDEX idx$elmentNames");
-        // }
+      }
+      if (isUpdated) {
+        await updateDocument(collectionName: collectionName, data: rowValue);
       }
     }
   }
 
-  Future<void> _addNewValueUpdate(
+  Future<void> _dropOldColumn(
       String tableName, List<TecfyIndexField>? dbColumns) async {
-    var dbColumnNamesList = dbColumns?.map((e) => e.name).toList();
-    var newIndexsList = _columns[tableName]
-        ?.where(
-            (element) => !(dbColumnNamesList?.contains(element.name) ?? false))
+    var columnsToBeRemovedList = dbColumns
+        ?.where((element) => !(_columns[tableName]!.contains(element)))
         .toList();
-    if (newIndexsList?.isNotEmpty ?? false) {
-      for (var newIndex in newIndexsList ?? []) {
-        await _database?.rawQuery(
-            'ALTER TABLE $tableName ADD COLUMN ${newIndex.name} ${newIndex.type.name}');
 
-        var newIndexsListEx = _indexs[tableName]
-            ?.where((element) => element
-                    .where((elementEx) => elementEx.name == newIndex.name)
-                    .isNotEmpty
-                ? true
-                : false)
-            .toList();
+    if (columnsToBeRemovedList?.isEmpty ?? false) return;
+    for (var columnToBeRemoved in columnsToBeRemovedList ?? []) {
+      await _database?.rawQuery(
+          'ALTER TABLE $tableName DROP COLUMN ${columnToBeRemoved.name}');
+    }
+  }
 
-        var queryElmentName = '';
-        var elmentNames = '';
-        bool isFirstTimeEx = true;
-        for (var newIndexEx in newIndexsListEx ?? []) {
-          for (var newIndex in newIndexEx) {
-            if (!isFirstTimeEx) {
-              queryElmentName += ",";
-            }
-            elmentNames += '_${newIndex.name}';
-            queryElmentName +=
-                "${newIndex.name} ${!newIndex.asc ? "DESC" : ""}";
-            isFirstTimeEx = false;
-          }
-          await _database?.rawQuery(
-              "CREATE INDEX idx$elmentNames ON $tableName ($queryElmentName);");
-        }
-      }
+  Future<void> _createNewColumn(
+    String tableName,
+    List<TecfyIndexField>? dbColumns,
+  ) async {
+    var newColumnsToBeAddedList = _columns[tableName]
+        ?.where((element) => !(dbColumns?.contains(element) ?? false))
+        .toList();
+
+    if (newColumnsToBeAddedList?.isEmpty ?? false) return;
+    for (var newColumn in newColumnsToBeAddedList!) {
+      _newcolumns[tableName] ??= [];
+      _newcolumns[tableName]?.add(newColumn!);
+      await _database?.rawQuery(
+          'ALTER TABLE $tableName ADD COLUMN ${newColumn!.name} ${newColumn.type.name} ${newColumn.nullable ? "" : 'not null'}');
     }
   }
 
@@ -420,8 +391,8 @@ class TecfyDatabase {
       var dataEx =
           jsonDecode(e['tecfy_json_body'] as String) as Map<String, dynamic>;
       if (_primaryKeyIndex != -1) {
-        dataEx[_columns[tableName]![_primaryKeyIndex(tableName)].name] =
-            e[_columns[tableName]![_primaryKeyIndex(tableName)].name];
+        dataEx[_columns[tableName]![_primaryKeyIndex(tableName)]!.name] =
+            e[_columns[tableName]![_primaryKeyIndex(tableName)]!.name];
       } else {
         dataEx['id'] = e['id'];
       }
@@ -429,7 +400,7 @@ class TecfyDatabase {
       return dataEx;
     }).toList();
     var checkList = _columns[tableName]
-        ?.where((element) => element.type.name == FieldTypes.datetime.name)
+        ?.where((element) => element?.type.name == FieldTypes.datetime.name)
         .toList();
     if (checkList?.isNotEmpty ?? false) {
       for (var itemInCheckList in checkList ?? []) {
@@ -529,12 +500,33 @@ class TecfyDatabase {
     }
   }
 
-  String _getCommand(TecfyCollection element) {
+  Future<void> _checkPrimaryKeyChanged(String collectionName) async {
+    var columnsSpecfs = (await dbColumnsSpecs(collectionName,
+        removePrimarykeyAndJsonColumns: false));
+    if (columnsSpecfs?.isEmpty ?? false) return;
+    var dbPrimaryKey =
+        columnsSpecfs?.firstWhere((element) => element.isPrimaryKey == true);
+
+    TecfyIndexField? userPrimaryKey = _columns[collectionName]?.firstWhere(
+        (element) => element?.isPrimaryKey == true,
+        orElse: () => null);
+
+    if ((dbPrimaryKey?.name == null && userPrimaryKey == null) ||
+        (dbPrimaryKey?.name == 'id' && userPrimaryKey == null)) return;
+
+    if (dbPrimaryKey?.name != userPrimaryKey?.name) {
+      // drop table
+      await _database?.rawQuery('drop table $collectionName');
+    }
+  }
+
+  String _getCreationCollectionCommandAndOps(TecfyCollection element) {
+    _columns[element.name] ??= [];
+
     String command = "CREATE TABLE IF NOT EXISTS ${element.name}(";
     bool tecfyIndexFieldsExisits = element.tecfyIndexFields != null &&
         (element.tecfyIndexFields?.isNotEmpty ?? false);
     if (element.primaryField != null) {
-      _columns[element.name] ??= [];
       _columns[element.name]?.add(element.primaryField!..isPrimaryKey = true);
       command +=
           "${element.primaryField?.name} ${element.primaryField?.type.name} primary key ${(element.primaryField?.autoIncrement ?? false) ? "AUTOINCREMENT" : ""},";
@@ -556,43 +548,14 @@ class TecfyDatabase {
       }
     }
     command += ",tecfy_json_body text);";
-    // re-check for re create columns
-    // if (tecfyIndexFieldsExisits) {
-    //   for (var singleIndexList in element.tecfyIndexFields!) {
-    //     command += singleIndexList
-    //         .where((element) => element.isPrimaryKey == false)
-    //         .map((e) =>
-    //             "Alter table  ${element.name} Add Column ${e.name} ${e.type.name} ${e.nullable ? "" : 'not null'};")
-    //         .join('');
-    //   }
-    // }
 
     // create indexes
     if (tecfyIndexFieldsExisits) {
       _indexs[element.name] = element.tecfyIndexFields ?? [];
       for (var singleIndexList in element.tecfyIndexFields!) {
-        // assign indexes and columns values
-
-        _columns[element.name] = singleIndexList;
-        if (singleIndexList.length == 1) {
-          command += singleIndexList
-              .map((e) => "CREATE INDEX ${_getIndexName([
-                        e
-                      ])} ON ${element.name} (${e.name});")
-              .toList()
-              .join(';');
-        } else {
-          var elmentNames = "";
-
-          elmentNames += '${_getIndexName(singleIndexList)}';
-
-          command +=
-              "CREATE INDEX $elmentNames ON ${element.name} (${singleIndexList.map((e) => "${e.name} ${!e.asc ? "DESC" : ""}").join(',')});";
-        }
+        (_columns[element.name] as List).addAll(singleIndexList);
       }
     }
-    //TODO ADD DISTINCT TO LISt
-    print(command);
     return command;
   }
 
