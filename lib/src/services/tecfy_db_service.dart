@@ -5,7 +5,7 @@ class TecfyDatabase {
   final Map<String, List<TecfyIndexField?>> _columns = {};
   final Map<String, List<TecfyIndexField>> _newcolumns = {};
   final Map<String, List<List<TecfyIndexField>>> _indexs = {};
-
+  bool _loading = true;
   List<TecfyListener> listeners = [];
 
   String? dbName;
@@ -53,7 +53,9 @@ class TecfyDatabase {
           print("Table Created");
         });
       }
+      _loading = false;
     } catch (e) {
+      print(e);
       throw Exception(e.toString());
     }
   }
@@ -140,7 +142,7 @@ class TecfyDatabase {
       );
       print('updated');
       if (result != 0) {
-        listeners.where((l) => _isFilterApplied(data, l.filter)).forEach((l) {
+        listeners.where((l) => _filterCheck(l.filter, data)).forEach((l) {
           l.sendUpdate();
         });
         return true;
@@ -290,7 +292,7 @@ class TecfyDatabase {
           as Map<String, dynamic>);
 
       var isUpdated = false;
-      for (var newColumn in _newcolumns[collectionName]!) {
+      for (var newColumn in _newcolumns[collectionName] ?? []) {
         try {
           if (rowValue[newColumn.name] != value[newColumn.name]) {
             rowValue[newColumn.name] == value[newColumn.name];
@@ -342,9 +344,11 @@ class TecfyDatabase {
     String? orderBy,
   }) {
     var listner = StreamController<List<Map<String, dynamic>>>.broadcast();
-    listeners.add(
-        TecfyListener(this, collectionName, filter, listner, orderBy: orderBy));
-
+    var lis =
+        TecfyListener(this, collectionName, filter, listner, orderBy: orderBy);
+    listeners.add(lis);
+    lis.sendUpdate();
+    // _sendListersUpdate(collectionName, null);
     return listner.stream;
   }
 
@@ -358,11 +362,12 @@ class TecfyDatabase {
     int? limit,
     int? offset,
   }) async {
+    if (_database == null) throw Exception("Database Not Initlized!");
     List<dynamic> params = [];
     var sql = _filterToString(filter, params);
     print(sql);
     print(params);
-    var result = await _database?.query(
+    var result = await _database!.query(
       collectionName,
       where: sql,
       whereArgs: params,
@@ -371,15 +376,14 @@ class TecfyDatabase {
       limit: limit,
       offset: offset,
     );
-    return _returnBody(collectionName, result ?? []);
+    return _returnBody(collectionName, result);
   }
 
   void _sendListersUpdate(String collection, dynamic document) {
     listeners.removeWhere((l) => l.notifier.isClosed);
     listeners
         .where((l) =>
-            l.collectionName == collection &&
-            _isFilterApplied(document, l.filter))
+            l.collectionName == collection && _filterCheck(l.filter, document))
         .forEach((l) {
       l.sendUpdate();
     });
@@ -390,7 +394,7 @@ class TecfyDatabase {
     var data = result.map((e) {
       var dataEx =
           jsonDecode(e['tecfy_json_body'] as String) as Map<String, dynamic>;
-      if (_primaryKeyIndex != -1) {
+      if (_primaryKeyIndex(tableName) != -1) {
         dataEx[_columns[tableName]![_primaryKeyIndex(tableName)]!.name] =
             e[_columns[tableName]![_primaryKeyIndex(tableName)]!.name];
       } else {
@@ -471,6 +475,66 @@ class TecfyDatabase {
     }
   }
 
+  bool _filterCheck(ITecfyDbFilter filter, Map<String, dynamic> doc) {
+    if (filter.type == ITecfyDbFilterTypes.filter) {
+      var f = filter as TecfyDbFilter;
+
+      return _filterOperatorValueCheck(f.operator, f.value, doc[f.field]);
+    } else {
+      List<bool> ands = [];
+      var f = filter.type == ITecfyDbFilterTypes.and
+          ? (filter as TecfyDbAnd).filters
+          : (filter as TecfyDbOr).filters;
+      for (var filt in f) {
+        ands.add(_filterCheck(filt, doc));
+      }
+      if (filter.type == ITecfyDbFilterTypes.and) {
+        for (var a in ands) {
+          if (!a) return false;
+        }
+        return true;
+      } else {
+        for (var a in ands) {
+          if (a) return true;
+        }
+        return false;
+      }
+
+      // return '( ${ands.join(filter.type == ITecfyDbFilterTypes.and ? ' and ' : ' or ')} )';
+    }
+  }
+
+// TODO CHAECK OPERATOR PROCESS
+  bool _filterOperatorValueCheck(
+      TecfyDbOperators operator, dynamic v1, dynamic v2) {
+    switch (operator) {
+      case TecfyDbOperators.isEqualTo:
+        return v1 == v1;
+
+      case TecfyDbOperators.isNotEqualTo:
+        return v1 != v1;
+
+      case TecfyDbOperators.isGreaterThan:
+        return v1 == v1;
+
+      case TecfyDbOperators.isGreaterThanOrEqualTo:
+        return v1 == v1;
+
+      case TecfyDbOperators.isLessThan:
+        return v1 == v1;
+      case TecfyDbOperators.islessThanOrEqualTo:
+        return v1 == v1;
+
+      case TecfyDbOperators.startwith:
+      case TecfyDbOperators.endwith:
+      case TecfyDbOperators.contains:
+        return v1 == v1;
+
+      default:
+        return v1 == v1;
+    }
+  }
+
   dynamic _customEncode(dynamic item) {
     if (item is DateTime) {
       return item.millisecondsSinceEpoch;
@@ -481,15 +545,16 @@ class TecfyDatabase {
   Map<String, dynamic>? _getInsertedBody(
       String tableName, Map<String, dynamic> data) {
     Map<String, dynamic> result = {};
-    for (var TecfyIndexField in _columns[tableName] ?? []) {
-      if (TecfyIndexField.type.name == FieldTypes.boolean.name) {
-        var value = data[TecfyIndexField.name] == true ? 1 : 0;
-        result[TecfyIndexField.name] = value;
-      } else if (TecfyIndexField.type.name == FieldTypes.datetime.name) {
-        var value = data[TecfyIndexField.name].millisecondsSinceEpoch;
-        result[TecfyIndexField.name] = value;
+    for (var column in _columns[tableName] ?? []) {
+      var type = (column.type as FieldTypes).name;
+      if (type == FieldTypes.boolean.name) {
+        var value = data[column.name] == true ? 1 : 0;
+        result[column.name] = value;
+      } else if (type == FieldTypes.datetime.name) {
+        var value = data[column.name].millisecondsSinceEpoch;
+        result[column.name] = value;
       } else {
-        result[TecfyIndexField.name] = data[TecfyIndexField.name];
+        result[column.name] = data[column.name];
       }
     }
 
@@ -559,8 +624,9 @@ class TecfyDatabase {
     return command;
   }
 
-  bool _isFilterApplied(Map<String, dynamic> document, ITecfyDbFilter filter) {
-    _database?.query('select true if 155>120');
+  Future<bool> isReadey() async {
+    while (_database == null || _loading)
+      await Future.delayed(Duration(milliseconds: 10));
     return true;
   }
 }

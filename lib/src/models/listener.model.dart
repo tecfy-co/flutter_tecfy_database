@@ -10,8 +10,8 @@ class TecfyListener {
       {this.orderBy});
 
   sendUpdate() {
-    database
-        .search(collectionName, filter, orderBy: orderBy)
-        .then((value) => notifier.add(value));
+    database.search(collectionName, filter, orderBy: orderBy).then((value) {
+      notifier.add(value);
+    });
   }
 }
