@@ -64,59 +64,11 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _titleFieldController = TextEditingController();
   final TextEditingController _descFieldController = TextEditingController();
 
-  // void _incrementCounter({String functionName = 'xx'}) async {
-  //   db.dbColumnsSpecs('persons');
-  //   // db.updateColumnsAndIndexs('persons');
-  //   // db.clearCollection(collectionName: 'persons');
-  //   switch (functionName) {
-  //     case 'search':
-  //       var result = await db.search(
-  //           'persons',
-  //           TecfyDbFilter('createdAtX', TecfyDbOperators.isEqualTo,
-  //               DateTime.now().millisecondsSinceEpoch));
-  //       print('=-=-=-=-=-=-=-=-=-${result}');
-  //       break;
-  //     case 'clearCollection':
-  //       await db.clearCollection(
-  //         collectionName: 'persons',
-  //       );
-  //       break;
-  //     case 'insertDocument':
-  //       var insertResult =
-  //           await db.insertDocument(collectionName: 'persons', data: {
-  //         "job": "driver",
-  //         "gender": "male",
-  //         "age": 33,
-  //         "isActive": false,
-  //         "createdAt": DateTime.now()
-  //       });
-  //       print('============> insert result ${insertResult}');
-  //       break;
-  //     case 'deleteDocument':
-  //       var result = await db.deleteDocument(
-  //           collectionName: 'persons', queryField: 'id', queryFieldValue: 1);
-  //       print('=========>${result}');
-  //       break;
-  //     case 'updateDocument':
-  //       var result3 = await db.updateDocument(collectionName: 'persons', data: {
-  //         "role_no": 1,
-  //         "job": "Tect2222 Updated",
-  //         "gender": "male",
-  //         "age": 22,
-  //         "isActive": true,
-  //         "createdAt": DateTime.now()
-  //       });
-  //       print('==-=-=-=-=-=-=-=${result3}');
-  //       break;
-  //     case 'getDocuments':
-  //       var result2 = await db.getDocuments(
-  //           collectionName: 'persons', orderBy: 'age desc');
-  //       print('==-=-=-=-=-=-=-=${result2}');
-  //       break;
-  //   }
-  // }
-
-  Future<void> _displayDialog() async {
+  Future<void> _displayDialog(value) async {
+    if (value != null) {
+      _titleFieldController.text = value['title'];
+      _descFieldController.text = value['desc'];
+    }
     var result = await showDialog(
         context: context,
         builder: (context) {
@@ -140,19 +92,32 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             actions: <Widget>[
               TextButton(
-                child: const Text('ADD'),
-                onPressed: () async {
-                  var insertResult =
-                      await db.insertDocument(collectionName: 'tasks', data: {
-                    "title": _titleFieldController.text,
-                    "desc": _descFieldController.text,
-                    "isDone": false,
-                    "createdAt": DateTime.now()
-                  });
-                  print('============> insert result ${insertResult}');
+                child: Text(value != null ? "Update" : 'ADD'),
+                onPressed: value != null
+                    ? () async {
+                        var insertResult = await db.updateDocument(
+                            collectionName: 'tasks',
+                            data: {
+                              "title": _titleFieldController.text,
+                              "desc": _descFieldController.text,
+                              // "isDone": true,
+                              // "createdAt": value['createdAt']
+                            },
+                            id: value['id']);
+                        Navigator.of(context).pop();
+                      }
+                    : () async {
+                        var insertResult = await db
+                            .insertDocument(collectionName: 'tasks', data: {
+                          "title": _titleFieldController.text,
+                          "desc": _descFieldController.text,
+                          "isDone": false,
+                          "createdAt": DateTime.now()
+                        });
+                        print('============> insert result ${insertResult}');
 
-                  Navigator.of(context).pop();
-                },
+                        Navigator.of(context).pop();
+                      },
               ),
               TextButton(
                 child: const Text('CANCEL'),
@@ -173,35 +138,86 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: const Text('Todo App'),
       ),
-      body: StreamBuilder(
-          stream: db.searchListner(
-              'tasks', TecfyDbFilter('title', TecfyDbOperators.startwith, 'a')),
-          builder: (context, snapshot) {
-            print('=============> ${snapshot.data}');
-            if (!snapshot.hasData) {
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-            if (snapshot.data?.isEmpty ?? false) {
-              return Center(
-                child: Text(
-                  "No Data found",
-                ),
-              );
-            } else {
-              return ListView.builder(
-                  itemCount: snapshot.data?.length,
-                  itemBuilder: (context, index) => ListTile(
-                        leading: Text(snapshot.data?[index]['title']),
-                      ));
-            }
-          }),
+      body: Row(
+        children: [
+          Expanded(
+            child: StreamBuilder(
+                stream: db.searchListner('tasks',
+                    TecfyDbFilter('title', TecfyDbOperators.startwith, 'a')),
+                builder: (context, snapshot) {
+                  print('=============> ${snapshot.data}');
+                  if (!snapshot.hasData) {
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                  if (snapshot.data?.isEmpty ?? false) {
+                    return Center(
+                      child: Text(
+                        "No Data found",
+                      ),
+                    );
+                  } else {
+                    return ListView.builder(
+                        itemCount: snapshot.data?.length,
+                        itemBuilder: (context, index) => ListTile(
+                              onTap: () =>
+                                  onUpdateClicekd(snapshot.data?[index]),
+                              trailing: traillingWidget(snapshot.data?[index]),
+                              leading: Text(snapshot.data?[index]['title']),
+                            ));
+                  }
+                }),
+          ),
+          Expanded(
+            child: StreamBuilder(
+                stream: db.searchListner('tasks',
+                    TecfyDbFilter('title', TecfyDbOperators.startwith, 'w')),
+                builder: (context, snapshot) {
+                  print('=============> ${snapshot.data}');
+                  if (!snapshot.hasData) {
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                  if (snapshot.data?.isEmpty ?? false) {
+                    return Center(
+                      child: Text(
+                        "No Data found",
+                      ),
+                    );
+                  } else {
+                    return ListView.builder(
+                        itemCount: snapshot.data?.length,
+                        itemBuilder: (context, index) => ListTile(
+                              onTap: () =>
+                                  onUpdateClicekd(snapshot.data?[index]),
+                              trailing: traillingWidget(snapshot.data?[index]),
+                              leading: Text(snapshot.data?[index]['title']),
+                            ));
+                  }
+                }),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _displayDialog(),
+        onPressed: () => _displayDialog(null),
         tooltip: 'add new todo',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
+  }
+
+  void onUpdateClicekd(value) {
+    _displayDialog(value);
+  }
+
+  Widget traillingWidget(value) {
+    return IconButton(
+        onPressed: () async {
+          await db.deleteDocument(
+              notifier: true, collectionName: 'tasks', id: value['id']);
+        },
+        icon: Icon(Icons.delete));
   }
 }

@@ -30,7 +30,7 @@ class TecfyDatabase {
           var createCommand = _getCreationCollectionCommandAndOps(collection);
           await _checkPrimaryKeyChanged(collection.name);
           await _database?.execute(createCommand);
-          await updateColumnsAndIndexs(collection.name);
+          await _updateColumnsAndIndexs(collection.name);
         }
 
         print("Table Created");
@@ -93,12 +93,22 @@ class TecfyDatabase {
 
   Future<bool> deleteDocument(
       {required String collectionName,
-      required String queryField,
-      required dynamic queryFieldValue}) async {
+      required dynamic id,
+      bool notifier = false}) async {
     try {
+      var doc;
+      if (notifier) {
+        doc =
+            await getDocumnetById(collectionName: collectionName, idValue: id);
+      }
       var result = await _database?.delete(collectionName,
-          where: "$queryField = ?", whereArgs: [queryFieldValue]);
+          where: "${_primaryKeyFieldName(collectionName)} = ?",
+          whereArgs: [id]);
       if (result != 0) {
+        if (notifier) {
+          _sendListersUpdate(collectionName, doc);
+        }
+
         return true;
       } else {
         return false;
@@ -106,6 +116,19 @@ class TecfyDatabase {
     } catch (err) {
       throw Exception(err);
     }
+  }
+
+  Future<Map<String, dynamic>?> getDocumnetById({
+    required String collectionName,
+    required dynamic idValue,
+  }) async {
+    var result = await _database?.query(collectionName,
+        where: "${_primaryKeyFieldName(collectionName)} = ?",
+        whereArgs: [idValue],
+        limit: 1);
+
+    print(result?.first);
+    return (result?.first);
   }
 
   Future<void> clearCollection({required String collectionName}) async {
@@ -119,6 +142,7 @@ class TecfyDatabase {
   Future<bool> updateDocument(
       {required String collectionName,
       required Map<String, dynamic> data,
+      required dynamic id,
       Object? Function(Object?)? toEncodableEx,
       ConflictAlgorithm? conflictAlgorithm}) async {
     try {
@@ -126,9 +150,10 @@ class TecfyDatabase {
       if (body == null || body.isEmpty) {
         throw Exception('Wrong Body');
       }
-      if (!data.containsKey(_primaryKeyFieldName)) {
+      if (id == null) {
         throw Exception('to update document provide primary key field on it');
       }
+
       var result = await _database?.update(
         collectionName,
         {
@@ -136,15 +161,13 @@ class TecfyDatabase {
           "tecfy_json_body":
               jsonEncode(data, toEncodable: toEncodableEx ?? _customEncode)
         },
-        where: "$_primaryKeyFieldName = ?",
-        whereArgs: [data[_primaryKeyFieldName]],
+        where: "${_primaryKeyFieldName(collectionName)} = ?",
+        whereArgs: [id],
         conflictAlgorithm: conflictAlgorithm,
       );
       print('updated');
       if (result != 0) {
-        listeners.where((l) => _filterCheck(l.filter, data)).forEach((l) {
-          l.sendUpdate();
-        });
+        _sendListersUpdate(collectionName, {});
         return true;
       } else {
         return false;
@@ -239,7 +262,7 @@ class TecfyDatabase {
     return 'idx_' + userIndexeNames.join('_');
   }
 
-  Future<List<TecfyIndexField>?> dbColumnsSpecs(String tableName,
+  Future<List<TecfyIndexField>?> _dbColumnsSpecs(String tableName,
       {bool removePrimarykeyAndJsonColumns = true}) async {
     var dbColumns =
         (await _database?.rawQuery("PRAGMA table_info($tableName);"))
@@ -261,10 +284,10 @@ class TecfyDatabase {
     return dbColumns;
   }
 
-  Future<void> updateColumnsAndIndexs(String collectionName) async {
+  Future<void> _updateColumnsAndIndexs(String collectionName) async {
     var dbIndexesName = await dbIndexesNames(collectionName);
     var newIndexesName = _getNewIndexesNames(collectionName);
-    var dbColumns = await dbColumnsSpecs(collectionName);
+    var dbColumns = await _dbColumnsSpecs(collectionName);
     if (_primaryKeyFieldName(collectionName) != 'id') {
       _columns[collectionName]?.removeWhere(
           (element) => element?.name == _primaryKeyFieldName(collectionName));
@@ -303,7 +326,10 @@ class TecfyDatabase {
         }
       }
       if (isUpdated) {
-        await updateDocument(collectionName: collectionName, data: rowValue);
+        await updateDocument(
+            collectionName: collectionName,
+            data: rowValue,
+            id: rowValue[_primaryKeyFieldName(collectionName)]);
       }
     }
   }
@@ -381,10 +407,11 @@ class TecfyDatabase {
 
   void _sendListersUpdate(String collection, dynamic document) {
     listeners.removeWhere((l) => l.notifier.isClosed);
-    listeners
-        .where((l) =>
-            l.collectionName == collection && _filterCheck(l.filter, document))
-        .forEach((l) {
+    listeners.where((l) {
+      var filterCheckValue =
+          document.isEmpty ? true : _filterCheck(l.filter, document);
+      return l.collectionName == collection && filterCheckValue;
+    }).forEach((l) {
       l.sendUpdate();
     });
   }
@@ -408,9 +435,13 @@ class TecfyDatabase {
         .toList();
     if (checkList?.isNotEmpty ?? false) {
       for (var itemInCheckList in checkList ?? []) {
+        var itemInCheckListCast = (itemInCheckList as TecfyIndexField);
         data = data.map((e) {
-          var value = e[itemInCheckList.name];
-          e[itemInCheckList.name] = DateTime.fromMillisecondsSinceEpoch(value);
+          var value = e[itemInCheckListCast.name];
+          if (value != null) {
+            e[itemInCheckListCast.name] =
+                DateTime.fromMillisecondsSinceEpoch(value);
+          }
           return e;
         }).toList();
       }
@@ -478,8 +509,9 @@ class TecfyDatabase {
   bool _filterCheck(ITecfyDbFilter filter, Map<String, dynamic> doc) {
     if (filter.type == ITecfyDbFilterTypes.filter) {
       var f = filter as TecfyDbFilter;
+      var value = _filterOperatorValueCheck(f.operator, f.value, doc[f.field]);
 
-      return _filterOperatorValueCheck(f.operator, f.value, doc[f.field]);
+      return value;
     } else {
       List<bool> ands = [];
       var f = filter.type == ITecfyDbFilterTypes.and
@@ -504,34 +536,33 @@ class TecfyDatabase {
     }
   }
 
-// TODO CHAECK OPERATOR PROCESS
   bool _filterOperatorValueCheck(
       TecfyDbOperators operator, dynamic v1, dynamic v2) {
     switch (operator) {
       case TecfyDbOperators.isEqualTo:
-        return v1 == v1;
+        return v2 == v1;
 
       case TecfyDbOperators.isNotEqualTo:
-        return v1 != v1;
+        return v2 != v1;
 
       case TecfyDbOperators.isGreaterThan:
-        return v1 == v1;
+        return v2 > v1;
 
       case TecfyDbOperators.isGreaterThanOrEqualTo:
-        return v1 == v1;
+        return v2 >= v1;
 
       case TecfyDbOperators.isLessThan:
-        return v1 == v1;
+        return v2 < v1;
       case TecfyDbOperators.islessThanOrEqualTo:
-        return v1 == v1;
-
+        return v2 <= v1;
       case TecfyDbOperators.startwith:
+        return v2.toString().startsWith(v1);
       case TecfyDbOperators.endwith:
+        return v2.toString().endsWith(v1);
       case TecfyDbOperators.contains:
-        return v1 == v1;
-
+        return v2.toString().contains(v1);
       default:
-        return v1 == v1;
+        return v2 == v1;
     }
   }
 
@@ -551,7 +582,14 @@ class TecfyDatabase {
         var value = data[column.name] == true ? 1 : 0;
         result[column.name] = value;
       } else if (type == FieldTypes.datetime.name) {
-        var value = data[column.name].millisecondsSinceEpoch;
+        var value = data[column.name];
+        if (value != null) {
+          if (value is DateTime) {
+            value = value.microsecondsSinceEpoch;
+          } else {
+            value = value;
+          }
+        }
         result[column.name] = value;
       } else {
         result[column.name] = data[column.name];
@@ -566,7 +604,7 @@ class TecfyDatabase {
   }
 
   Future<void> _checkPrimaryKeyChanged(String collectionName) async {
-    var columnsSpecfs = (await dbColumnsSpecs(collectionName,
+    var columnsSpecfs = (await _dbColumnsSpecs(collectionName,
         removePrimarykeyAndJsonColumns: false));
     if (columnsSpecfs?.isEmpty ?? false) return;
     var dbPrimaryKey =
