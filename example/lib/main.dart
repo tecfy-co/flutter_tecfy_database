@@ -95,26 +95,24 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Text(value != null ? "Update" : 'ADD'),
                 onPressed: value != null
                     ? () async {
-                        var insertResult = await db.updateDocument(
-                            collectionName: 'tasks',
-                            data: {
-                              "title": _titleFieldController.text,
-                              "desc": _descFieldController.text,
-                              // "isDone": true,
-                              // "createdAt": value['createdAt']
-                            },
-                            id: value['id']);
+                        await db.collection('tasks').doc(value['id']).update(
+                          data: {
+                            "title": _titleFieldController.text,
+                            "desc": _descFieldController.text,
+                            // "isDone": true,
+                            // "createdAt": value['createdAt']
+                          },
+                        );
                         Navigator.of(context).pop();
                       }
                     : () async {
-                        var insertResult = await db
-                            .insertDocument(collectionName: 'tasks', data: {
+                        var insertResult =
+                            await db.collection('tasks').add(data: {
                           "title": _titleFieldController.text,
                           "desc": _descFieldController.text,
                           "isDone": false,
                           "createdAt": DateTime.now()
                         });
-                        print('============> insert result ${insertResult}');
 
                         Navigator.of(context).pop();
                       },
@@ -142,8 +140,9 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           Expanded(
             child: StreamBuilder(
-                stream: db.searchListner('tasks',
-                    TecfyDbFilter('title', TecfyDbOperators.startwith, 'a')),
+                stream: db.collection('tasks').stream(
+                    filter: TecfyDbFilter(
+                        'title', TecfyDbOperators.startwith, 'a')),
                 builder: (context, snapshot) {
                   print('=============> ${snapshot.data}');
                   if (!snapshot.hasData) {
@@ -171,8 +170,9 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           Expanded(
             child: StreamBuilder(
-                stream: db.searchListner('tasks',
-                    TecfyDbFilter('title', TecfyDbOperators.startwith, 'w')),
+                stream: db.collection('tasks').stream(
+                    filter: TecfyDbFilter(
+                        'title', TecfyDbOperators.startwith, 'w')),
                 builder: (context, snapshot) {
                   print('=============> ${snapshot.data}');
                   if (!snapshot.hasData) {
@@ -215,8 +215,10 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget traillingWidget(value) {
     return IconButton(
         onPressed: () async {
-          await db.deleteDocument(
-              notifier: true, collectionName: 'tasks', id: value['id']);
+          var result = await db
+              .collection('tasks')
+              .doc(value['id'].toString())
+              .delete(notifier: true);
         },
         icon: Icon(Icons.delete));
   }

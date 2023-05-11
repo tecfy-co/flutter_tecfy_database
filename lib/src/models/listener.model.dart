@@ -1,16 +1,23 @@
 part of tecfy_database;
 
 class TecfyListener {
-  late TecfyDatabase database;
+  late TecfyCollectionOperations collection;
   late String collectionName;
-  late ITecfyDbFilter filter;
   late StreamController notifier;
+  ITecfyDbFilter? filter;
   String? orderBy;
-  TecfyListener(this.database, this.collectionName, this.filter, this.notifier,
-      {this.orderBy});
+  TecfyListener(
+    this.collection,
+    this.collectionName,
+    this.notifier, {
+    this.orderBy,
+    this.filter,
+  });
 
   sendUpdate() {
-    database.search(collectionName, filter, orderBy: orderBy).then((value) {
+    collection
+        .search(collectionName, filter: filter, orderBy: orderBy)
+        .then((value) {
       notifier.add(value);
     });
   }
