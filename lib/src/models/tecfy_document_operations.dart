@@ -19,7 +19,7 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
     try {
       var doc;
       if (notifier) {
-        doc = await getById();
+        doc = await get();
       }
       var result = await collection.database?.delete(collection.collection.name,
           where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
@@ -38,7 +38,7 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
   }
 
   @override
-  Future<Map<String, dynamic>?> getById() async {
+  Future<Map<String, dynamic>?> get() async {
     var result = await collection.database?.query(collection.collection.name,
         where: "$_primaryKeyFieldName = ?", whereArgs: [id], limit: 1);
 
@@ -49,8 +49,15 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
   Future<bool> update(
       {required Map<String, dynamic> data,
       Object? Function(Object? p1)? toEncodableEx,
-      ConflictAlgorithm? conflictAlgorithm}) async {
+      ConflictAlgorithm? conflictAlgorithm,
+      bool notifier = false}) async {
+    var doc;
+
     try {
+      if (notifier) {
+        doc = await get();
+      }
+
       var body = collection._getInsertedBody(collection.collection.name, data);
       if (body == null || body.isEmpty) {
         throw Exception('Wrong Body');
@@ -72,7 +79,11 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
       );
       print('updated');
       if (result != 0) {
-        collection._sendListersUpdate(collection.collection.name, {});
+        if (notifier) {
+          collection._sendListersUpdate(collection.collection.name, doc);
+          _sendListnerUpdateDoc(id);
+        }
+
         return true;
       } else {
         return false;
@@ -80,5 +91,29 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
     } catch (e) {
       throw Exception(e.toString());
     }
+  }
+
+  @override
+  Stream<Map<String, dynamic>> stream(
+      {ITecfyDbFilter? filter, String? orderBy}) {
+    var listner = StreamController<Map<String, dynamic>>.broadcast();
+    var lis = TecfyListener(collection, collection.collection.name, listner,
+        filter: filter, orderBy: orderBy, documentId: id);
+
+    collection.listeners.add(lis);
+    lis.sendUpdate();
+
+    return listner.stream;
+  }
+
+  void _sendListnerUpdateDoc(id) async {
+    var docListener = collection.listeners
+        .firstWhereOrNull((element) => element.documentId == id);
+
+    if (docListener?.notifier.isClosed ?? false) return;
+    if (docListener?.notifier.isClosed ?? false) {
+      throw Exception('No Listener for document');
+    }
+    docListener?.sendUpdate();
   }
 }

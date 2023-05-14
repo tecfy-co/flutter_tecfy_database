@@ -95,14 +95,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Text(value != null ? "Update" : 'ADD'),
                 onPressed: value != null
                     ? () async {
-                        await db.collection('tasks').doc(value['id']).update(
-                          data: {
-                            "title": _titleFieldController.text,
-                            "desc": _descFieldController.text,
-                            // "isDone": true,
-                            // "createdAt": value['createdAt']
-                          },
-                        );
+                        await db
+                            .collection('tasks')
+                            .doc(value['id'])
+                            .update(data: {
+                          "title": _titleFieldController.text,
+                          "desc": _descFieldController.text,
+                          // "isDone": true,
+                          // "createdAt": value['createdAt']
+                        }, notifier: true);
                         Navigator.of(context).pop();
                       }
                     : () async {
@@ -140,9 +141,28 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           Expanded(
             child: StreamBuilder(
-                stream: db.collection('tasks').stream(
-                    filter: TecfyDbFilter(
-                        'title', TecfyDbOperators.startwith, 'a')),
+                stream: db.collection('tasks').doc('1').stream(),
+                builder: (context, snapshot) {
+                  print('=============>doc stream  ${snapshot.data}');
+                  if (!snapshot.hasData) {
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                  if (snapshot.data?.isEmpty ?? false) {
+                    return Center(
+                      child: Text(
+                        "No Data found",
+                      ),
+                    );
+                  } else {
+                    return Text(snapshot.data?['title']);
+                  }
+                }),
+          ),
+          Expanded(
+            child: StreamBuilder(
+                stream: db.collection('tasks').stream(),
                 builder: (context, snapshot) {
                   print('=============> ${snapshot.data}');
                   if (!snapshot.hasData) {

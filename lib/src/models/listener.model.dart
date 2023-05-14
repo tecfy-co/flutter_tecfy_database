@@ -6,19 +6,19 @@ class TecfyListener {
   late StreamController notifier;
   ITecfyDbFilter? filter;
   String? orderBy;
-  TecfyListener(
-    this.collection,
-    this.collectionName,
-    this.notifier, {
-    this.orderBy,
-    this.filter,
-  });
+  dynamic documentId;
+  TecfyListener(this.collection, this.collectionName, this.notifier,
+      {this.orderBy, this.filter, this.documentId});
 
-  sendUpdate() {
-    collection
-        .search(collectionName, filter: filter, orderBy: orderBy)
-        .then((value) {
-      notifier.add(value);
-    });
+  sendUpdate() async {
+    if (documentId != null) {
+      collection.doc(documentId).get().then((e) => notifier.add(e));
+    } else {
+      collection
+          .search(collectionName, filter: filter, orderBy: orderBy)
+          .then((value) {
+        notifier.add(value);
+      });
+    }
   }
 }

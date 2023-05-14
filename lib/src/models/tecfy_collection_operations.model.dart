@@ -308,7 +308,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     listeners.removeWhere((l) => l.notifier.isClosed);
     listeners.where((l) {
       var filterCheckValue =
-          document.isEmpty ? true : _filterCheck(l.filter!, document);
+          document.isEmpty ? true : _filterCheck(document, filter: l.filter);
       return l.collectionName == collection && filterCheckValue;
     }).forEach((l) {
       l.sendUpdate();
@@ -472,7 +472,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     }
   }
 
-  bool _filterCheck(ITecfyDbFilter filter, Map<String, dynamic> doc) {
+  bool _filterCheck(Map<String, dynamic> doc, {ITecfyDbFilter? filter}) {
+    if (filter == null) return true;
     if (filter.type == ITecfyDbFilterTypes.filter) {
       var f = filter as TecfyDbFilter;
       var value = _filterOperatorValueCheck(f.operator, f.value, doc[f.field]);
@@ -484,7 +485,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
           ? (filter as TecfyDbAnd).filters
           : (filter as TecfyDbOr).filters;
       for (var filt in f) {
-        ands.add(_filterCheck(filt, doc));
+        ands.add(_filterCheck(doc, filter: filt));
       }
       if (filter.type == ITecfyDbFilterTypes.and) {
         for (var a in ands) {
