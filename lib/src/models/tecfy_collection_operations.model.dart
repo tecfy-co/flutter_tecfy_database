@@ -35,7 +35,6 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       await _updateColumnsAndIndexs(collection.name);
       // _loading = false;
     } catch (e) {
-      print(e);
       throw Exception(e.toString());
     }
   }
@@ -53,23 +52,24 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     await _dropOldColumn(dbColumns);
 
     await _createNewColumn(dbColumns);
-
     await _createIndexes(dbIndexesName, newIndexesName);
-
     await _updatedNewColumnsValues();
   }
 
   Future<void> _updatedNewColumnsValues() async {
-    if (_newcolumns[collection.name]?.isEmpty ?? false) return;
+    if (_newcolumns.isEmpty ||
+        (_newcolumns[collection.name]?.isEmpty ?? false)) {
+      return;
+    }
 
     var rowValues = await _db?.rawQuery('Select * from ${collection.name}');
 
-    for (var rowValue in rowValues!) {
+    for (var rowValue in rowValues ?? []) {
       var value = (jsonDecode(rowValue['tecfy_json_body'] as String)
           as Map<String, dynamic>);
 
       var isUpdated = false;
-      for (var newColumn in _newcolumns[collection.name] ?? []) {
+      for (var newColumn in _newcolumns[collection.name]!) {
         try {
           if (rowValue[newColumn.name] != value[newColumn.name]) {
             rowValue[newColumn.name] == value[newColumn.name];
@@ -134,7 +134,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         .toList();
     if (indexedNeedToBeCreated.isEmpty) return;
     for (var newIndex in (_indexs[collection.name] as List)) {
-      var indName = _getIndexName(newIndex);
+      var indName = _getIndexName(newIndex, collection.name);
       if (!indexedNeedToBeCreated.contains(indName)) continue;
       await _db?.rawQuery(
           "CREATE INDEX $indName ON ${collection.name} (${newIndex.map((e) => '${e.name}').join(',')});");
@@ -143,18 +143,19 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   List<String> _getNewIndexesNames(String tableName) {
     List<String> result = [];
+    if (_indexs[tableName] == null) return [];
     for (var ind in (_indexs[tableName] as List)) {
-      result.add(_getIndexName(ind));
+      result.add(_getIndexName(ind, tableName));
     }
     return result;
   }
 
-  _getIndexName(List<TecfyIndexField> ind) {
+  _getIndexName(List<TecfyIndexField> ind, String tableName) {
     var userIndexeNames = ind
         .map((e) => '${e.name}_${e.type.name}${e.asc ? '_a' : '_d'}')
         .toList();
 
-    return 'idx_' + userIndexeNames.join('_');
+    return 'idx_${tableName}_' + userIndexeNames.join('_');
   }
 
   Future<List<String>> _dbIndexesNames(String tableName) async {
@@ -229,19 +230,15 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     }
 
     if (tecfyIndexFieldsExisits) {
-      bool isFirstTime = true;
       for (var singleIndexList in collection.tecfyIndexFields!) {
-        if (!isFirstTime) {
-          command += ",";
-        }
         command += singleIndexList
             .map((e) =>
                 "${e.name} ${e.type.name} ${e.nullable ? "" : 'not null'}")
             .join(',');
-        isFirstTime = false;
+        command += ",";
       }
     }
-    command += ",tecfy_json_body text);";
+    command += "tecfy_json_body text);";
 
     // create indexes
     if (tecfyIndexFieldsExisits) {
@@ -368,8 +365,6 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     } else {
       sql = _filterToString(filter, params);
     }
-    print(sql);
-    print(params);
     var result = await _db!.query(
       collectionName,
       where: sql,

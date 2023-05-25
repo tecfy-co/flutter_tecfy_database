@@ -3,8 +3,6 @@ part of tecfy_database;
 class TecfyDatabase {
   Database? _database;
   final Map<String, List<TecfyIndexField?>> _columns = {};
-  final Map<String, List<TecfyIndexField>> _newcolumns = {};
-  final Map<String, List<List<TecfyIndexField>>> _indexs = {};
   bool _loading = true;
   List<TecfyListener> listeners = [];
   String? dbName;

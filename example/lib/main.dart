@@ -1,33 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:project/roles_page.dart';
+import 'package:project/users_page.dart';
 import 'package:tecfy_database/tecfy_database.dart';
 
 void main() async {
   var db = TecfyDatabase(collections: [
-    TecfyCollection('tasks',
-        // primaryField: TecfyIndexField(
-        //     name: "roll_no",
-        //     type: FieldTypes.integer,
-        //     nullable: false,
-        //     autoIncrement: true),
-        tecfyIndexFields: [
-          [
-            TecfyIndexField(
-                name: "title", type: FieldTypes.text, nullable: false),
-            TecfyIndexField(
-              name: "desc",
-              type: FieldTypes.integer,
-            ),
-          ],
-          [
-            TecfyIndexField(
-                name: "isDone", type: FieldTypes.boolean, asc: false)
-          ],
-          [
-            TecfyIndexField(
-                name: "createdAt", type: FieldTypes.datetime, asc: false)
-          ],
-        ])
+    TecfyCollection('tasks', tecfyIndexFields: [
+      [
+        TecfyIndexField(name: "title", type: FieldTypes.text, nullable: false),
+        TecfyIndexField(
+          name: "desc",
+          type: FieldTypes.integer,
+        ),
+      ],
+      [TecfyIndexField(name: "isDone", type: FieldTypes.boolean, asc: false)],
+      [
+        TecfyIndexField(
+            name: "createdAt", type: FieldTypes.datetime, asc: false)
+      ],
+    ]),
+    TecfyCollection(
+      'users',
+      tecfyIndexFields: [
+        [
+          TecfyIndexField(name: "name", type: FieldTypes.text, nullable: false),
+        ],
+        [
+          TecfyIndexField(
+            name: "mobile",
+            type: FieldTypes.integer,
+          ),
+        ],
+        [
+          TecfyIndexField(
+              name: "createdAt", type: FieldTypes.datetime, asc: false)
+        ],
+      ],
+    ),
+    TecfyCollection('roles')
   ]);
   await db.isReadey();
   GetIt.I.registerSingleton<TecfyDatabase>(db, instanceName: 'db');
@@ -134,6 +145,35 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            DrawerHeader(
+              child: Text(
+                'Options',
+                style: TextStyle(color: Colors.white),
+              ),
+              decoration: BoxDecoration(color: Theme.of(context).primaryColor),
+            ),
+            ListTile(
+              leading: Icon(Icons.person),
+              title: Text('Users'),
+              onTap: () {
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => UsersPage()));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.settings),
+              title: Text('Roles'),
+              onTap: () {
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => RolesPage()));
+              },
+            ),
+          ],
+        ),
+      ),
       appBar: AppBar(
         title: const Text('Todo App'),
       ),
@@ -141,30 +181,8 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           Expanded(
             child: StreamBuilder(
-                stream: db.collection('tasks').doc('1').stream(),
-                builder: (context, snapshot) {
-                  print('=============>doc stream  ${snapshot.data}');
-                  if (!snapshot.hasData) {
-                    return Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-                  if (snapshot.data?.isEmpty ?? false) {
-                    return Center(
-                      child: Text(
-                        "No Data found",
-                      ),
-                    );
-                  } else {
-                    return Text(snapshot.data?['title']);
-                  }
-                }),
-          ),
-          Expanded(
-            child: StreamBuilder(
                 stream: db.collection('tasks').stream(),
                 builder: (context, snapshot) {
-                  print('=============> ${snapshot.data}');
                   if (!snapshot.hasData) {
                     return Center(
                       child: CircularProgressIndicator(),
@@ -180,41 +198,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     return ListView.builder(
                         itemCount: snapshot.data?.length,
                         itemBuilder: (context, index) => ListTile(
-                              onTap: () =>
-                                  onUpdateClicekd(snapshot.data?[index]),
-                              trailing: traillingWidget(snapshot.data?[index]),
-                              leading: Text(snapshot.data?[index]['title']),
-                            ));
-                  }
-                }),
-          ),
-          Expanded(
-            child: StreamBuilder(
-                stream: db.collection('tasks').stream(
-                    filter: TecfyDbFilter(
-                        'title', TecfyDbOperators.startwith, 'w')),
-                builder: (context, snapshot) {
-                  print('=============> ${snapshot.data}');
-                  if (!snapshot.hasData) {
-                    return Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-                  if (snapshot.data?.isEmpty ?? false) {
-                    return Center(
-                      child: Text(
-                        "No Data found",
-                      ),
-                    );
-                  } else {
-                    return ListView.builder(
-                        itemCount: snapshot.data?.length,
-                        itemBuilder: (context, index) => ListTile(
-                              onTap: () =>
-                                  onUpdateClicekd(snapshot.data?[index]),
-                              trailing: traillingWidget(snapshot.data?[index]),
-                              leading: Text(snapshot.data?[index]['title']),
-                            ));
+                            onTap: () => onUpdateClicekd(snapshot.data?[index]),
+                            trailing: traillingWidget(snapshot.data?[index]),
+                            leading: Text(snapshot.data?[index]['title'])));
                   }
                 }),
           ),
