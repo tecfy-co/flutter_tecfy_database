@@ -47,6 +47,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       _columns[collectionName]?.removeWhere(
           (element) => element?.name == _primaryKeyFieldName(collectionName));
     }
+
     await _dropUnusedIndexes(dbIndexesName, newIndexesName);
 
     await _dropOldColumn(dbColumns);
@@ -90,6 +91,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   Future<void> _dropUnusedIndexes(
       List<String> dbIndexesName, List<String> newIndexesName) async {
+    if (newIndexesName.isEmpty) return;
     var unUsedIndexes = dbIndexesName
         .where((element) => !newIndexesName.contains(element))
         .toList();
@@ -115,7 +117,9 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     List<TecfyIndexField>? dbColumns,
   ) async {
     var newColumnsToBeAddedList = _columns[collection.name]
-        ?.where((element) => !(dbColumns?.contains(element) ?? false))
+        ?.where((element) => element?.isPrimaryKey == false)
+        .toList()
+        .where((element) => !(dbColumns?.contains(element) ?? false))
         .toList();
 
     if (newColumnsToBeAddedList?.isEmpty ?? false) return;
