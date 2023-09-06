@@ -10,7 +10,7 @@ class TecfyListener {
   TecfyListener(this.collection, this.collectionName, this.notifier,
       {this.orderBy, this.filter, this.documentId});
 
-  sendUpdate() async {
+  void sendUpdate() async {
     if (documentId != null) {
       collection.doc(documentId).get().then((e) => notifier.add(e));
     } else {

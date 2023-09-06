@@ -39,14 +39,13 @@ class _RolesPageState extends State<RolesPage> {
                 child: Text(value != null ? "Update" : 'ADD'),
                 onPressed: value != null
                     ? () async {
-                        await db
-                            .collection('roles')
-                            .doc(value['id'])
-                            .update(data: {
-                          "name": _nameFieldController.text,
-                          // "isDone": true,
-                          // "createdAt": value['createdAt']
-                        }, notifier: true);
+                        await db.collection('roles').doc(value['id']).update(
+                            data: {
+                              "name": _nameFieldController.text,
+                              "isDone": true,
+                              "createdAt": DateTime.now()
+                            },
+                            notifier: true);
                         Navigator.of(context).pop();
                       }
                     : () async {

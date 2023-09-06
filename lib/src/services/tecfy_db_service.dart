@@ -64,17 +64,18 @@ class TecfyDatabase {
     _columns.clear();
   }
 
-  // Future<void> clearCollection({required String collectionName}) async {
-  //   try {
-  //     await _database?.execute("DELETE FROM $collectionName");
-  //   } catch (e) {
-  //     throw Exception(e);
-  //   }
-  // }
+  Future<void> clearCollection({required String collectionName}) async {
+    try {
+      await _database?.execute("DELETE FROM $collectionName");
+    } catch (e) {
+      throw Exception(e);
+    }
+  }
 
   Future<bool> isReadey() async {
-    while (_database == null || _loading)
+    while (_database == null || _loading) {
       await Future.delayed(Duration(milliseconds: 10));
+    }
     return true;
   }
 }

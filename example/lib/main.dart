@@ -171,6 +171,14 @@ class _MyHomePageState extends State<MyHomePage> {
                     context, MaterialPageRoute(builder: (_) => RolesPage()));
               },
             ),
+            ListTile(
+              leading: Icon(Icons.delete),
+              title: Text('Delete db'),
+              onTap: () async {
+                var db = GetIt.I.get<TecfyDatabase>(instanceName: 'db');
+                await db.clearCollection(collectionName: 'roles');
+              },
+            ),
           ],
         ),
       ),

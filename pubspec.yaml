@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  sqflite_common_ffi_web: ^0.3.5
+  sqflite_common_ffi_web: ^0.4.0
   sqflite: ^2.2.8
   intl: ^0.18.1
   equatable: ^2.0.5
