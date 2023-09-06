@@ -12,6 +12,9 @@ abstract class TecfyCollectionInterface {
   /// Fetch the documents for this collection
   Future<List<Map<String, dynamic>?>> get({String? orderBy, String? groupBy});
 
+  /// delete collection
+  Future<bool> delete();
+
   /// add new document
   Future<bool> add(
       {required Map<String, dynamic> data,

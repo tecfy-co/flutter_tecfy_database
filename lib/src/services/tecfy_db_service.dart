@@ -64,12 +64,11 @@ class TecfyDatabase {
     _columns.clear();
   }
 
-  Future<void> clearCollection({required String collectionName}) async {
-    try {
-      await _database?.execute("DELETE FROM $collectionName");
-    } catch (e) {
-      throw Exception(e);
+  Future<void> deleteDb() async {
+    for (var key in (operations?.keys.toList() ?? [])) {
+      await _database?.execute("DELETE FROM $key");
     }
+    _columns.clear();
   }
 
   Future<bool> isReadey() async {

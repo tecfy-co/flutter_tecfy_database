@@ -535,4 +535,15 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       id,
     );
   }
+
+  @override
+  Future<bool> delete() async {
+    try {
+      await database?.execute("DELETE FROM ${collection.name}");
+      return true;
+    } catch (e) {
+      debugPrint('error when delete collection');
+      return false;
+    }
+  }
 }
