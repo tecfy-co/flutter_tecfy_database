@@ -176,7 +176,7 @@ class _MyHomePageState extends State<MyHomePage> {
               title: Text('Delete db'),
               onTap: () async {
                 var db = GetIt.I.get<TecfyDatabase>(instanceName: 'db');
-                await db.collection('roles').delete();
+                await db.collection('roles').clear();
               },
             ),
           ],

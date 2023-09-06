@@ -12,8 +12,8 @@ abstract class TecfyCollectionInterface {
   /// Fetch the documents for this collection
   Future<List<Map<String, dynamic>?>> get({String? orderBy, String? groupBy});
 
-  /// delete collection
-  Future<bool> delete();
+  /// clear collection data
+  Future<bool> clear();
 
   /// add new document
   Future<bool> add(
@@ -22,8 +22,7 @@ abstract class TecfyCollectionInterface {
       String? nullColumnHack,
       ConflictAlgorithm? conflictAlgorithm});
 
-  Future<List<Map<String, dynamic>>> search(
-    String collectionName, {
+  Future<List<Map<String, dynamic>>> search({
     ITecfyDbFilter? filter,
     String? groupBy,
     String? having,

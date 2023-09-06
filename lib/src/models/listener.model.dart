@@ -14,9 +14,7 @@ class TecfyListener {
     if (documentId != null) {
       collection.doc(documentId).get().then((e) => notifier.add(e));
     } else {
-      collection
-          .search(collectionName, filter: filter, orderBy: orderBy)
-          .then((value) {
+      collection.search(filter: filter, orderBy: orderBy).then((value) {
         notifier.add(value);
       });
     }

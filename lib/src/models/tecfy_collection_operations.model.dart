@@ -11,7 +11,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   Database? get database => _db;
 
   TecfyCollectionOperations(this.collection) {
-    initCollection();
+    _initCollection();
   }
 
   @override
@@ -26,7 +26,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     return listner.stream;
   }
 
-  void initCollection() async {
+  void _initCollection() async {
     try {
       _db = GetIt.I.get<Database>(instanceName: 'tecfyDatabase');
       var createCommand = _getCreationCollectionCommandAndOps();
@@ -350,7 +350,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> search(String collectionName,
+  Future<List<Map<String, dynamic>>> search(
       {ITecfyDbFilter? filter,
       String? groupBy,
       String? having,
@@ -366,7 +366,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       sql = _filterToString(filter, params);
     }
     var result = await _db!.query(
-      collectionName,
+      collection.name,
       where: sql,
       whereArgs: params,
       groupBy: groupBy,
@@ -374,7 +374,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       limit: limit,
       offset: offset,
     );
-    return _returnBody(collectionName, result);
+    return _returnBody(collection.name, result);
   }
 
   String _filterToString(ITecfyDbFilter filter, List<dynamic> params) {
@@ -537,7 +537,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   }
 
   @override
-  Future<bool> delete() async {
+  Future<bool> clear() async {
     try {
       await database?.execute("DELETE FROM ${collection.name}");
       return true;

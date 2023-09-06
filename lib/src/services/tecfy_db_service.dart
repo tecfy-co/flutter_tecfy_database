@@ -64,7 +64,7 @@ class TecfyDatabase {
     _columns.clear();
   }
 
-  Future<void> deleteDb() async {
+  Future<void> clearDb() async {
     for (var key in (operations?.keys.toList() ?? [])) {
       await _database?.execute("DELETE FROM $key");
     }
