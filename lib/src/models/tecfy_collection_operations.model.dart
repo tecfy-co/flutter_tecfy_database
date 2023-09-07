@@ -91,13 +91,18 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   Future<void> _dropUnusedIndexes(
       List<String> dbIndexesName, List<String> newIndexesName) async {
-    if (newIndexesName.isEmpty) return;
-    var unUsedIndexes = dbIndexesName
-        .where((element) => !newIndexesName.contains(element))
-        .toList();
+    try {
+      if (newIndexesName.isEmpty) return;
+      var unUsedIndexes = dbIndexesName
+          .where((element) => !newIndexesName.contains(element))
+          .toList();
 
-    for (var unUsedIndexe in unUsedIndexes) {
-      await _db?.rawQuery("DROP INDEX $unUsedIndexe");
+      for (var unUsedIndexe in unUsedIndexes) {
+        await _db?.rawQuery("DROP INDEX $unUsedIndexe");
+      }
+    } catch (e) {
+      print(
+          'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXException whild drop unused indexs ${e}');
     }
   }
 
@@ -166,6 +171,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     var result = (await _db?.rawQuery("PRAGMA index_list($tableName);"))
         ?.map((e) => e['name'].toString())
         .toList();
+
+    result?.removeWhere((element) => !element.contains("idx_"));
     return result ?? [];
   }
 
