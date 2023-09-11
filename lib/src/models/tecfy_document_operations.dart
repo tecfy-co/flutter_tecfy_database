@@ -42,7 +42,11 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
     var result = await collection.database?.query(collection.collection.name,
         where: "$_primaryKeyFieldName = ?", whereArgs: [id], limit: 1);
 
-    return (result?.first);
+    if (result != null && result.isNotEmpty) {
+      return jsonDecode(((result.first)['tecfy_json_body'] as String));
+    } else {
+      return null;
+    }
   }
 
   @override
