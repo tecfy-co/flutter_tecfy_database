@@ -22,6 +22,15 @@ abstract class TecfyCollectionInterface {
       String? nullColumnHack,
       ConflictAlgorithm? conflictAlgorithm});
 
+  /// get number of elements
+  Future<int> count({
+    ITecfyDbFilter? filter,
+  });
+
+  /// check if element exists Or not (check only by document id)
+  Future<bool> exists(dynamic id);
+
+  /// search for values
   Future<List<Map<String, dynamic>>> search({
     ITecfyDbFilter? filter,
     String? groupBy,
