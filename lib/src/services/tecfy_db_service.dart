@@ -6,6 +6,7 @@ class TecfyDatabase {
   bool _loading = true;
   List<TecfyListener> listeners = [];
   String? dbName;
+  String databasesPath = "";
   Map<String, TecfyCollectionOperations>? operations;
 
   TecfyCollectionOperations collection(
@@ -27,6 +28,13 @@ class TecfyDatabase {
     operations ??= {};
 
     try {
+      if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
+        // Initialize FFI
+        sqfliteFfiInit();
+        // Change the default factory
+        databaseFactory = databaseFactoryFfi;
+      }
+
       if (kIsWeb) {
         var factory = databaseFactoryFfiWeb;
         _database = await factory.openDatabase(path,
@@ -36,8 +44,14 @@ class TecfyDatabase {
 
         print("Table Created");
       } else {
-        String databasesPath = await getDatabasesPath();
-        String dbPath = '${databasesPath}path';
+        if (Platform.isWindows) {
+          databasesPath =
+              '${(await pathLib.getApplicationDocumentsDirectory()).path}\\';
+        } else {
+          databasesPath = await getDatabasesPath();
+        }
+        String dbPath = '$databasesPath$path';
+        print('------------------------------ db path $dbPath');
         _database = await openDatabase(
           dbPath,
           version: 3,

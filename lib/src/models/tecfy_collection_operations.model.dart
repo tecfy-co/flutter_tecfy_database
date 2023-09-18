@@ -299,7 +299,6 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         conflictAlgorithm: conflictAlgorithm,
       );
 
-      print('inserted');
       if (result != 0) {
         _sendListersUpdate(collection.name, data);
 
