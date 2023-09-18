@@ -17,6 +17,7 @@ dependencies:
   equatable: ^2.0.5
   get_it: ^7.3.0
   collection: ^1.17.2
+  path_provider: 
 
 dev_dependencies:
   flutter_test:
