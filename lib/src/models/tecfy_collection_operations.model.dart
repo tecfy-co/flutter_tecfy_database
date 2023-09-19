@@ -159,7 +159,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     return result;
   }
 
-  _getIndexName(List<TecfyIndexField> ind, String tableName) {
+  String _getIndexName(List<TecfyIndexField> ind, String tableName) {
     var userIndexeNames = ind
         .map((e) => '${e.name}_${e.type.name}${e.asc ? '_a' : '_d'}')
         .toList();
@@ -240,13 +240,22 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       command += "id integer primary key AUTOINCREMENT not null,";
     }
 
+    List<String> indexKeies = [];
+
     if (tecfyIndexFieldsExisits) {
       for (var singleIndexList in collection.tecfyIndexFields!) {
-        command += singleIndexList
-            .map((e) =>
-                "${e.name} ${e.type.name} ${e.nullable ? "" : 'not null'}")
-            .join(',');
-        command += ",";
+        for (var singelIndexItem in singleIndexList) {
+          if (!indexKeies.contains(singelIndexItem.name)) {
+            command +=
+                "${singelIndexItem.name} ${singelIndexItem.type.name} ${singelIndexItem.nullable ? "" : 'not null'},";
+            indexKeies.add(singelIndexItem.name);
+            // command += singleIndexList
+            //         .map((e) =>
+            //             "${e.name} ${e.type.name} ${e.nullable ? "" : 'not null'}")
+            //         .join(',');
+          }
+          // command += ",";
+        }
       }
     }
     command += "tecfy_json_body text);";

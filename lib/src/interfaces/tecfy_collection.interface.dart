@@ -4,6 +4,7 @@ abstract class TecfyCollectionInterface {
   TecfyDocumentOperations doc([dynamic id]);
 
   /// attach stream to collection .
+  /// for ITecfyDbFilter you can use (TecfyDbFilter,TecfyDbAnd,TecfyDbOr)
   Stream<List<Map<String, dynamic>>> stream({
     ITecfyDbFilter? filter,
     String? orderBy,
@@ -23,6 +24,7 @@ abstract class TecfyCollectionInterface {
       ConflictAlgorithm? conflictAlgorithm});
 
   /// get number of elements
+  /// for ITecfyDbFilter you can use (TecfyDbFilter,TecfyDbAnd,TecfyDbOr)
   Future<int> count({
     ITecfyDbFilter? filter,
   });
@@ -31,6 +33,7 @@ abstract class TecfyCollectionInterface {
   Future<bool> exists(dynamic id);
 
   /// search for values
+  /// for ITecfyDbFilter you can use (TecfyDbFilter,TecfyDbAnd,TecfyDbOr)
   Future<List<Map<String, dynamic>>> search({
     ITecfyDbFilter? filter,
     String? groupBy,
