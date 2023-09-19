@@ -308,7 +308,6 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         conflictAlgorithm: conflictAlgorithm,
       );
 
-      print('inserted');
       if (result != 0) {
         _sendListersUpdate(collection.name, data);
 
@@ -433,6 +432,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         params.add('${f.value}%');
       } else if (f.operator == TecfyDbOperators.endwith) {
         params.add('%${f.value}');
+      } else if (f.operator == TecfyDbOperators.isNull) {
+        params.add('${f.value == true ? '' : ' not'} null');
       } else if (f.operator == TecfyDbOperators.contains) {
         params.add('%${f.value}%');
       } else {
@@ -505,6 +506,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         return '<';
       case TecfyDbOperators.islessThanOrEqualTo:
         return '<=';
+      case TecfyDbOperators.isNull:
+        return 'is';
 
       case TecfyDbOperators.startwith:
       case TecfyDbOperators.endwith:

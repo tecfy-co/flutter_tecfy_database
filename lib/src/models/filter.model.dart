@@ -25,6 +25,7 @@ class TecfyDbOr extends ITecfyDbFilter {
 }
 
 enum TecfyDbOperators {
+  isNull,
   isEqualTo,
   isNotEqualTo,
   isGreaterThan,

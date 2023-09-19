@@ -9,7 +9,6 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
     this.collection,
     this.id,
   ) {
-    print(collection.collection.name);
     _primaryKeyFieldName =
         collection._primaryKeyFieldName(collection.collection.name);
   }
@@ -81,7 +80,6 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
         whereArgs: [id],
         conflictAlgorithm: conflictAlgorithm,
       );
-      print('updated');
       if (result != 0) {
         if (notifier) {
           collection._sendListersUpdate(collection.collection.name, doc);

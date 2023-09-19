@@ -1,6 +1,6 @@
 name: tecfy_database
 description: sqlite database as json database.
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/tecfy-co/flutter_tecfy_database
 
 environment:
@@ -12,10 +12,12 @@ dependencies:
     sdk: flutter
   sqflite_common_ffi_web: ^0.4.0
   sqflite: ^2.2.8
+  sqflite_common_ffi: ^2.3.0+2
   intl: ^0.18.1
   equatable: ^2.0.5
   get_it: ^7.3.0
   collection: ^1.17.2
+  path_provider: 
 
 dev_dependencies:
   flutter_test:
