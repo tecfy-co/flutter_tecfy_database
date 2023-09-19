@@ -9,11 +9,7 @@ class TecfyDatabase {
   String databasesPath = "";
   Map<String, TecfyCollectionOperations>? operations;
 
-  TecfyCollectionOperations collection(
-    String name, {
-    String? groupBy,
-    String? orderBy,
-  }) {
+  TecfyCollectionOperations collection(String name) {
     return operations![name]!;
   }
 
