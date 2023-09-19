@@ -380,21 +380,13 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   }
 
   @override
-  Future<int> count({ITecfyDbFilter? filter}) async {
-    if (_db == null) throw Exception("Database Not Initlized!");
-    List<dynamic> params = [];
-    var sql;
-    if (filter == null) {
-      sql = null;
-    } else {
-      sql = _filterToString(filter, params);
-    }
-    var result = await _db!.query(
-      collection.name,
-      where: sql,
-      whereArgs: params,
-    );
-    return result.length;
+  Stream<int> count({ITecfyDbFilter? filter}) {
+    var listner = StreamController<int>.broadcast();
+    var lis = TecfyListener(this, collection.name, listner, filter: filter);
+    listeners.add(lis);
+    lis.sendUpdateCount();
+    // _sendListersUpdate(collectionName, null);
+    return listner.stream;
   }
 
   @override

@@ -19,4 +19,10 @@ class TecfyListener {
       });
     }
   }
+
+  void sendUpdateCount() async {
+    collection.search(filter: filter, orderBy: orderBy).then((value) {
+      notifier.add(value.length);
+    });
+  }
 }

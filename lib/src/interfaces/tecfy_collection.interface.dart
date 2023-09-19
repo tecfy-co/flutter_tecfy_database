@@ -25,7 +25,7 @@ abstract class TecfyCollectionInterface {
 
   /// get number of elements
   /// for ITecfyDbFilter you can use (TecfyDbFilter,TecfyDbAnd,TecfyDbOr)
-  Future<int> count({
+  Stream<int> count({
     ITecfyDbFilter? filter,
   });
 
