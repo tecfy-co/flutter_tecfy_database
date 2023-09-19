@@ -424,14 +424,16 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       } else if (f.operator == TecfyDbOperators.endwith) {
         params.add('%${f.value}');
       } else if (f.operator == TecfyDbOperators.isNull) {
-        params.add('${f.value == true ? '' : ' not'} null');
       } else if (f.operator == TecfyDbOperators.contains) {
         params.add('%${f.value}%');
       } else {
         params.add(f.value);
       }
-
-      return '${f.field} ${_getFilterOperatorValue(f.operator)} ?';
+      if (f.operator == TecfyDbOperators.isNull) {
+        return '${f.field} ${_getFilterOperatorValue(f.operator)} ${f.value == true ? '' : ' not'} null';
+      } else {
+        return '${f.field} ${_getFilterOperatorValue(f.operator)} ?';
+      }
     } else {
       List<String> ands = [];
       var f = filter.type == ITecfyDbFilterTypes.and
