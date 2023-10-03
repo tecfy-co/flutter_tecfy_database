@@ -17,13 +17,13 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   @override
   Stream<List<Map<String, dynamic>>> stream(
       {ITecfyDbFilter? filter, String? orderBy}) {
-    var listner = StreamController<List<Map<String, dynamic>>>.broadcast();
-    var lis = TecfyListener(this, collection.name, listner,
+    var listener = StreamController<List<Map<String, dynamic>>>.broadcast();
+    var lis = TecfyListener(this, collection.name, listener,
         filter: filter, orderBy: orderBy);
     listeners.add(lis);
     lis.sendUpdate();
     // _sendListersUpdate(collectionName, null);
-    return listner.stream;
+    return listener.stream;
   }
 
   void _initCollection() async {
@@ -323,9 +323,11 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   void _sendListersUpdate(String collection, dynamic document) {
     listeners.removeWhere((l) => l.notifier.isClosed);
     listeners.where((l) {
-      var filterCheckValue =
-          document.isEmpty ? true : _filterCheck(document, filter: l.filter);
-      return l.collectionName == collection && filterCheckValue;
+      var filterCheckValue = (document == null || document.isEmpty)
+          ? true
+          : _filterCheck(document, filter: l.filter);
+      return l.collectionName ==
+          collection; // && filterCheckValue; // TODO: fix all cases
     }).forEach((l) {
       l.sendUpdate();
     });
@@ -381,12 +383,12 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   @override
   Stream<int> count({ITecfyDbFilter? filter}) {
-    var listner = StreamController<int>.broadcast();
-    var lis = TecfyListener(this, collection.name, listner, filter: filter);
+    var listener = StreamController<int>.broadcast();
+    var lis = TecfyListener(this, collection.name, listener, filter: filter);
     listeners.add(lis);
     lis.sendUpdateCount();
     // _sendListersUpdate(collectionName, null);
-    return listner.stream;
+    return listener.stream;
   }
 
   @override

@@ -11,8 +11,16 @@ class TecfyListener {
       {this.orderBy, this.filter, this.documentId});
 
   void sendUpdate() async {
+    if (notifier is StreamController<int>) {
+      sendUpdateCount();
+      return;
+    }
     if (documentId != null) {
-      collection.doc(documentId).get().then((e) => notifier.add(e));
+      collection.doc(documentId).get().then((e) {
+        if (e != null) {
+          notifier.add(e);
+        }
+      });
     } else {
       collection.search(filter: filter, orderBy: orderBy).then((value) {
         notifier.add(value);

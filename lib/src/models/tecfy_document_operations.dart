@@ -54,13 +54,7 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
       Object? Function(Object? p1)? toEncodableEx,
       ConflictAlgorithm? conflictAlgorithm,
       bool notifier = false}) async {
-    var doc;
-
     try {
-      if (notifier) {
-        doc = await get();
-      }
-
       var body = collection._getInsertedBody(collection.collection.name, data);
       if (body == null || body.isEmpty) {
         throw Exception('Wrong Body');
@@ -82,8 +76,9 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
       );
       if (result != 0) {
         if (notifier) {
+          var doc = await get();
           collection._sendListersUpdate(collection.collection.name, doc);
-          _sendListnerUpdateDoc(id);
+          _sendListenerUpdateDoc(id);
         }
 
         return true;
@@ -98,24 +93,23 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
   @override
   Stream<Map<String, dynamic>> stream(
       {ITecfyDbFilter? filter, String? orderBy}) {
-    var listner = StreamController<Map<String, dynamic>>.broadcast();
-    var lis = TecfyListener(collection, collection.collection.name, listner,
+    var listener = StreamController<Map<String, dynamic>>.broadcast();
+    var lis = TecfyListener(collection, collection.collection.name, listener,
         filter: filter, orderBy: orderBy, documentId: id);
 
     collection.listeners.add(lis);
     lis.sendUpdate();
 
-    return listner.stream;
+    return listener.stream;
   }
 
-  void _sendListnerUpdateDoc(id) async {
-    var docListener = collection.listeners
-        .firstWhereOrNull((element) => element.documentId == id);
+  void _sendListenerUpdateDoc(id) async {
+    collection.listeners.removeWhere((l) => l.notifier.isClosed);
 
-    if (docListener?.notifier.isClosed ?? false) return;
-    if (docListener?.notifier.isClosed ?? false) {
-      throw Exception('No Listener for document');
-    }
-    docListener?.sendUpdate();
+    var docListener = collection.listeners
+        .where((element) => element.documentId == id)
+        .forEach((l) {
+      l.sendUpdate();
+    });
   }
 }
