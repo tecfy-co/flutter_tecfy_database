@@ -1,9 +1,12 @@
 
-Sqlite dataabse as json database
+Sqlite database as json database
 
 ## Features
 
-fast
+- fast
+- index fields
+- working  on Android, iOS, macOS, Web, Windows, and Linux
+
 
 ## Getting started
 
@@ -15,6 +18,5 @@ install and use it
 
 
 
-## Additional information
 
 
