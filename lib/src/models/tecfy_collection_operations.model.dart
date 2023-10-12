@@ -473,8 +473,12 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         data = data.map((e) {
           var value = e[itemInCheckListCast.name];
           if (value != null) {
-            e[itemInCheckListCast.name] =
-                DateTime.fromMillisecondsSinceEpoch(value);
+            if (value is int) {
+              e[itemInCheckListCast.name] =
+                  DateTime.fromMillisecondsSinceEpoch(value);
+            } else if (value is String) {
+              e[itemInCheckListCast.name] = DateTime.tryParse(value);
+            }
           }
           return e;
         }).toList();

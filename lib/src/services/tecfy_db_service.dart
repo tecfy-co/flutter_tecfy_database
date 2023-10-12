@@ -32,13 +32,14 @@ class TecfyDatabase {
       }
 
       if (kIsWeb) {
+        databasesPath = path;
         var factory = databaseFactoryFfiWeb;
-        _database = await factory.openDatabase(path,
+        _database = await factory.openDatabase(databasesPath,
             options: OpenDatabaseOptions(
               version: 3,
             ));
 
-        print("Table Created");
+        print("Database Created");
       } else {
         if (Platform.isWindows) {
           databasesPath =
@@ -52,7 +53,7 @@ class TecfyDatabase {
           dbPath,
           version: 3,
         );
-        print("Table Created");
+        print("Database Created, $dbPath");
       }
 
       if (_database != null) {
@@ -76,7 +77,7 @@ class TecfyDatabase {
 
   Future<void> clearDb() async {
     for (var key in (operations?.keys.toList() ?? [])) {
-      await _database?.execute("DELETE FROM $key");
+      await _database?.execute("DELETE FROM $key;");
     }
     _columns.clear();
   }
