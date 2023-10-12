@@ -1,6 +1,7 @@
 part of tecfy_database;
 
 class TecfyDatabase {
+  static bool dbLock = false;
   Database? _database;
   final Map<String, List<TecfyIndexField?>> _columns = {};
   bool _loading = true;

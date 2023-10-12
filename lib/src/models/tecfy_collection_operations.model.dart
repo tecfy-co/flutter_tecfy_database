@@ -285,13 +285,16 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   }
 
   @override
-  Future<bool> add(
-      {required Map<String, dynamic> data,
-      Object? Function(Object? p1)? toEncodableEx,
-      String? nullColumnHack,
-      ConflictAlgorithm? conflictAlgorithm}) async {
+  Future<bool> add({
+    required Map<String, dynamic> data,
+    Object? Function(Object? p1)? toEncodableEx,
+    String? nullColumnHack,
+    ConflictAlgorithm? conflictAlgorithm,
+    bool notify = true,
+  }) async {
     try {
       var body = _getInsertedBody(collection.name, data);
+
       var result = await _db?.insert(
         collection.name,
         body != null
@@ -309,8 +312,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       );
 
       if (result != 0) {
-        _sendListersUpdate(collection.name, data);
-
+        if (notify) _sendListersUpdate(collection.name, data);
         return true;
       } else {
         return false;
