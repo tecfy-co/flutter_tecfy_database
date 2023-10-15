@@ -284,32 +284,72 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     }
   }
 
+  Batch? getBatch() {
+    return database?.batch();
+  }
+
+  void refreshListers() {
+    _sendListersUpdate(collection.name, null);
+  }
+
+  void notifyListers() {
+    _sendListersUpdate(collection.name, null);
+  }
+
+  Future<List<Object?>?> commitBatch({
+    required Batch? batch,
+    bool notify = true,
+    bool? exclusive,
+    bool? noResult,
+    bool? continueOnError,
+  }) async {
+    var result = batch?.commit(
+      exclusive: exclusive,
+      noResult: noResult,
+      continueOnError: continueOnError,
+    );
+    if (notify) _sendListersUpdate(collection.name, null);
+    return await result;
+  }
+
   @override
   Future<bool> add({
     required Map<String, dynamic> data,
     Object? Function(Object? p1)? toEncodableEx,
     String? nullColumnHack,
     ConflictAlgorithm? conflictAlgorithm,
-    bool notify = true,
+    bool notify = true /** default is true when batch == null */,
+    Batch? batch,
   }) async {
     try {
       var body = _getInsertedBody(collection.name, data);
-
-      var result = await _db?.insert(
-        collection.name,
-        body != null
-            ? {
-                ...body,
-                "tecfy_json_body": jsonEncode(data,
-                    toEncodable: toEncodableEx ?? _customEncode)
-              }
-            : {
-                "tecfy_json_body": jsonEncode(data,
-                    toEncodable: toEncodableEx ?? _customEncode)
-              },
-        nullColumnHack: nullColumnHack,
-        conflictAlgorithm: conflictAlgorithm,
-      );
+      var insertData = body != null
+          ? {
+              ...body,
+              "tecfy_json_body":
+                  jsonEncode(data, toEncodable: toEncodableEx ?? _customEncode)
+            }
+          : {
+              "tecfy_json_body":
+                  jsonEncode(data, toEncodable: toEncodableEx ?? _customEncode)
+            };
+      int? result;
+      //batch?.insert(table, values)
+      if (batch != null) {
+        batch?.insert(
+          collection.name,
+          insertData,
+          nullColumnHack: nullColumnHack,
+          conflictAlgorithm: conflictAlgorithm,
+        );
+      } else {
+        result = await _db?.insert(
+          collection.name,
+          insertData,
+          nullColumnHack: nullColumnHack,
+          conflictAlgorithm: conflictAlgorithm,
+        );
+      }
 
       if (result != 0) {
         if (notify) _sendListersUpdate(collection.name, data);

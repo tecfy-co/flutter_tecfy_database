@@ -2,7 +2,7 @@ part of tecfy_database;
 
 class TecfyDatabase {
   static bool dbLock = false;
-  Database? _database;
+  static Database? _database;
   final Map<String, List<TecfyIndexField?>> _columns = {};
   bool _loading = true;
   List<TecfyListener> listeners = [];
@@ -21,6 +21,7 @@ class TecfyDatabase {
   void _initDb({
     required List<TecfyCollection> collections,
   }) async {
+    if (_database != null) return;
     String path = dbName ?? "tecfy_db.db";
     operations ??= {};
 
@@ -73,6 +74,7 @@ class TecfyDatabase {
 
   void dispose() async {
     await _database?.close();
+    _database = null;
     _columns.clear();
   }
 

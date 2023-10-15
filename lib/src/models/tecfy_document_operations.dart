@@ -14,14 +14,20 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
   }
 
   @override
-  Future<bool> delete({bool notifier = false}) async {
+  Future<bool> delete({bool notifier = false, Batch? batch}) async {
     try {
       var doc;
       if (notifier) {
         doc = await get();
       }
-      var result = await collection.database?.delete(collection.collection.name,
-          where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
+      int? result = 0;
+      if (batch != null) {
+        batch.delete(collection.collection.name,
+            where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
+      } else {
+        result = await collection.database?.delete(collection.collection.name,
+            where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
+      }
       if (result != 0) {
         if (notifier) {
           collection._sendListersUpdate(collection.collection.name, doc);
@@ -53,6 +59,7 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
       {required Map<String, dynamic> data,
       Object? Function(Object? p1)? toEncodableEx,
       ConflictAlgorithm? conflictAlgorithm,
+      Batch? batch,
       bool notifier = false}) async {
     try {
       var body = collection._getInsertedBody(collection.collection.name, data);
@@ -62,18 +69,29 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
       if (id == null) {
         throw Exception('to update document provide primary key field on it');
       }
-
-      var result = await collection.database?.update(
-        collection.collection.name,
-        {
-          ...body,
-          "tecfy_json_body": jsonEncode(data,
-              toEncodable: toEncodableEx ?? collection._customEncode)
-        },
-        where: "$_primaryKeyFieldName = ?",
-        whereArgs: [id],
-        conflictAlgorithm: conflictAlgorithm,
-      );
+      var updateData = {
+        ...body,
+        "tecfy_json_body": jsonEncode(data,
+            toEncodable: toEncodableEx ?? collection._customEncode)
+      };
+      int? result = 0;
+      if (batch != null) {
+        batch?.update(
+          collection.collection.name,
+          updateData,
+          where: "$_primaryKeyFieldName = ?",
+          whereArgs: [id],
+          conflictAlgorithm: conflictAlgorithm,
+        );
+      } else {
+        result = await collection.database?.update(
+          collection.collection.name,
+          updateData,
+          where: "$_primaryKeyFieldName = ?",
+          whereArgs: [id],
+          conflictAlgorithm: conflictAlgorithm,
+        );
+      }
       if (result != 0) {
         if (notifier) {
           var doc = await get();
