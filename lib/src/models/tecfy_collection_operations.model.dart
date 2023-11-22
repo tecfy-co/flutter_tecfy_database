@@ -2,6 +2,7 @@ part of tecfy_database;
 
 class TecfyCollectionOperations extends TecfyCollectionInterface {
   Database? _db;
+  bool dbLock = false;
   TecfyCollection collection;
   final Map<String, List<TecfyIndexField?>> _columns = {};
   final Map<String, List<TecfyIndexField>> _newcolumns = {};
@@ -22,7 +23,6 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         filter: filter, orderBy: orderBy);
     listeners.add(lis);
     lis.sendUpdate();
-    // _sendListersUpdate(collectionName, null);
     return listener.stream;
   }
 
@@ -62,9 +62,10 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         (_newcolumns[collection.name]?.isEmpty ?? false)) {
       return;
     }
-
+    while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+    dbLock = true;
     var rowValues = await _db?.rawQuery('Select * from ${collection.name}');
-
+    dbLock = false;
     for (var rowValue in rowValues ?? []) {
       var value = (jsonDecode(rowValue['tecfy_json_body'] as String)
           as Map<String, dynamic>);
@@ -274,9 +275,12 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   Future<List<Map<String, dynamic>?>> get(
       {String? orderBy, String? groupBy}) async {
     try {
+      while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+      dbLock = true;
       var result = await _db?.query(collection.name,
               orderBy: orderBy, groupBy: groupBy) ??
           [];
+      dbLock = false;
       var data = _returnBody(collection.name, result);
       return data;
     } catch (e) {
@@ -292,10 +296,6 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     _sendListersUpdate(collection.name, null);
   }
 
-  void notifyListers() {
-    _sendListersUpdate(collection.name, null);
-  }
-
   Future<List<Object?>?> commitBatch({
     required Batch? batch,
     bool notify = true,
@@ -303,11 +303,14 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     bool? noResult,
     bool? continueOnError,
   }) async {
+    while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+    dbLock = true;
     var result = batch?.commit(
       exclusive: exclusive,
       noResult: noResult,
       continueOnError: continueOnError,
     );
+    dbLock = false;
     if (notify) _sendListersUpdate(collection.name, null);
     return await result;
   }
@@ -343,12 +346,15 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
           conflictAlgorithm: conflictAlgorithm,
         );
       } else {
+        while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+        dbLock = true;
         result = await _db?.insert(
           collection.name,
           insertData,
           nullColumnHack: nullColumnHack,
           conflictAlgorithm: conflictAlgorithm,
         );
+        dbLock = false;
       }
 
       if (result != 0) {
@@ -429,7 +435,6 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     var lis = TecfyListener(this, collection.name, listener, filter: filter);
     listeners.add(lis);
     lis.sendUpdateCount();
-    // _sendListersUpdate(collectionName, null);
     return listener.stream;
   }
 

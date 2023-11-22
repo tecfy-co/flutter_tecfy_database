@@ -25,8 +25,12 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
         batch.delete(collection.collection.name,
             where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
       } else {
+        while (TecfyDatabase.dbLock)
+          await Future.delayed(Duration(milliseconds: 50));
+        TecfyDatabase.dbLock = true;
         result = await collection.database?.delete(collection.collection.name,
             where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
+        TecfyDatabase.dbLock = false;
       }
       if (result != 0) {
         if (notifier) {
@@ -44,8 +48,12 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
 
   @override
   Future<Map<String, dynamic>?> get() async {
+    while (TecfyDatabase.dbLock)
+      await Future.delayed(Duration(milliseconds: 50));
+    TecfyDatabase.dbLock = true;
     var result = await collection.database?.query(collection.collection.name,
         where: "$_primaryKeyFieldName = ?", whereArgs: [id], limit: 1);
+    TecfyDatabase.dbLock = false;
 
     if (result != null && result.isNotEmpty) {
       return jsonDecode(((result.first)['tecfy_json_body'] as String));
@@ -84,6 +92,9 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
           conflictAlgorithm: conflictAlgorithm,
         );
       } else {
+        while (TecfyDatabase.dbLock)
+          await Future.delayed(Duration(milliseconds: 50));
+        TecfyDatabase.dbLock = true;
         result = await collection.database?.update(
           collection.collection.name,
           updateData,
@@ -91,6 +102,7 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
           whereArgs: [id],
           conflictAlgorithm: conflictAlgorithm,
         );
+        TecfyDatabase.dbLock = false;
       }
       if (result != 0) {
         if (notifier) {
