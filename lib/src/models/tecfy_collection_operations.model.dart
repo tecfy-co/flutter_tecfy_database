@@ -501,14 +501,12 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     }
     //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
     dbLock = true;
-    print(
-        '${DateFormat("HH:mm:ss SSS").format(DateTime.now())} DEBUG1-> QUERY-SEARCH-ANY ${collection.name} -- $params');
     var result = await _db!.rawQuery(
       'select 1 as count from ${collection.name} where $sql limit 1',
       params,
     );
     dbLock = false;
-    return (result[0]['count'] as int) > 0;
+    return result.isEmpty ? false : (((result[0]['count'] as int?) ?? 0) > 0);
   }
 
   String _filterToString(ITecfyDbFilter filter, List<dynamic> params) {
