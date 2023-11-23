@@ -42,4 +42,12 @@ abstract class TecfyCollectionInterface {
     int? limit,
     int? offset,
   });
+
+  /// search for values
+  /// for ITecfyDbFilter you can use (TecfyDbFilter,TecfyDbAnd,TecfyDbOr)
+  Future<int?> searchCount({ITecfyDbFilter? filter});
+
+  /// search for values
+  /// for ITecfyDbFilter you can use (TecfyDbFilter,TecfyDbAnd,TecfyDbOr)
+  Future<bool> searchAny({ITecfyDbFilter? filter});
 }

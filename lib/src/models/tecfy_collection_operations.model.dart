@@ -62,7 +62,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         (_newcolumns[collection.name]?.isEmpty ?? false)) {
       return;
     }
-    while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+    //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
     dbLock = true;
     var rowValues = await _db?.rawQuery('Select * from ${collection.name}');
     dbLock = false;
@@ -275,7 +275,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   Future<List<Map<String, dynamic>?>> get(
       {String? orderBy, String? groupBy}) async {
     try {
-      while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+      //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
       dbLock = true;
       var result = await _db?.query(collection.name,
               orderBy: orderBy, groupBy: groupBy) ??
@@ -303,7 +303,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     bool? noResult,
     bool? continueOnError,
   }) async {
-    while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+    //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
     dbLock = true;
     var result = batch?.commit(
       exclusive: exclusive,
@@ -346,7 +346,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
           conflictAlgorithm: conflictAlgorithm,
         );
       } else {
-        while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+        //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
         dbLock = true;
         result = await _db?.insert(
           collection.name,
@@ -358,7 +358,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       }
 
       if (result != 0) {
-        if (notify) _sendListersUpdate(collection.name, data);
+        if (notify && batch == null) _sendListersUpdate(collection.name, data);
         return true;
       } else {
         return false;
@@ -420,7 +420,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   @override
   Future<bool> exists(id) async {
-    if (_db == null) throw Exception("Database Not Initlized!");
+    if (_db == null) throw Exception("Database Not Initialized!");
     var result = await _db!.query(collection.name,
         where: '${_primaryKeyFieldName(collection.name)} = ?',
         whereArgs: [id],
@@ -446,7 +446,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       String? orderBy,
       int? limit,
       int? offset}) async {
-    if (_db == null) throw Exception("Database Not Initlized!");
+    if (_db == null) throw Exception("Database Not Initialized!");
     List<dynamic> params = [];
     var sql;
     if (filter == null) {
@@ -454,6 +454,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     } else {
       sql = _filterToString(filter, params);
     }
+    //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+    dbLock = true;
     var result = await _db!.query(
       collection.name,
       where: sql,
@@ -463,7 +465,50 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       limit: limit,
       offset: offset,
     );
+    dbLock = false;
     return _returnBody(collection.name, result);
+  }
+
+  @override
+  Future<int?> searchCount({ITecfyDbFilter? filter}) async {
+    if (_db == null) throw Exception("Database Not Initialized!");
+    List<dynamic> params = [];
+    var sql;
+    if (filter == null) {
+      sql = null;
+    } else {
+      sql = _filterToString(filter, params);
+    }
+    //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+    dbLock = true;
+    var result = await _db!.rawQuery(
+      'select count(*) as count from ${collection.name} where $sql',
+      params,
+    );
+    dbLock = false;
+    return result[0]['count'] as int?;
+  }
+
+  @override
+  Future<bool> searchAny({ITecfyDbFilter? filter}) async {
+    if (_db == null) throw Exception("Database Not Initialized!");
+    List<dynamic> params = [];
+    var sql;
+    if (filter == null) {
+      sql = null;
+    } else {
+      sql = _filterToString(filter, params);
+    }
+    //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
+    dbLock = true;
+    print(
+        '${DateFormat("HH:mm:ss SSS").format(DateTime.now())} DEBUG1-> QUERY-SEARCH-ANY ${collection.name} -- $params');
+    var result = await _db!.rawQuery(
+      'select 1 as count from ${collection.name} where $sql limit 1',
+      params,
+    );
+    dbLock = false;
+    return (result[0]['count'] as int) > 0;
   }
 
   String _filterToString(ITecfyDbFilter filter, List<dynamic> params) {

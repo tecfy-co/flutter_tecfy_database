@@ -16,11 +16,12 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
   @override
   Future<bool> delete({bool notifier = false, Batch? batch}) async {
     try {
-      var doc;
+      if (collection.database == null) return false;
+      Map<String, dynamic>? doc;
       if (notifier) {
         doc = await get();
       }
-      int? result = 0;
+      int result = 0;
       if (batch != null) {
         batch.delete(collection.collection.name,
             where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
@@ -28,7 +29,7 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
         while (TecfyDatabase.dbLock)
           await Future.delayed(Duration(milliseconds: 50));
         TecfyDatabase.dbLock = true;
-        result = await collection.database?.delete(collection.collection.name,
+        result = await collection.database!.delete(collection.collection.name,
             where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
         TecfyDatabase.dbLock = false;
       }
@@ -42,12 +43,13 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
         return false;
       }
     } catch (err) {
-      throw Exception(err);
+      return false;
     }
   }
 
   @override
   Future<Map<String, dynamic>?> get() async {
+    if (id == null || id.toString().isEmpty) return null;
     while (TecfyDatabase.dbLock)
       await Future.delayed(Duration(milliseconds: 50));
     TecfyDatabase.dbLock = true;
@@ -84,7 +86,7 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
       };
       int? result = 0;
       if (batch != null) {
-        batch?.update(
+        batch.update(
           collection.collection.name,
           updateData,
           where: "$_primaryKeyFieldName = ?",

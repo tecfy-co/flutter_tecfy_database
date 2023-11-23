@@ -85,7 +85,7 @@ class TecfyDatabase {
     _columns.clear();
   }
 
-  Future<bool> isReadey() async {
+  Future<bool> isReady() async {
     while (_database == null || _loading) {
       await Future.delayed(Duration(milliseconds: 10));
     }

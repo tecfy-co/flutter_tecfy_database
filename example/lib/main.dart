@@ -40,7 +40,7 @@ void main() async {
     ),
     TecfyCollection('roles')
   ]);
-  await db.isReadey();
+  await db.isReady();
   GetIt.I.registerSingleton<TecfyDatabase>(db, instanceName: 'db');
   runApp(const MyApp());
 }
