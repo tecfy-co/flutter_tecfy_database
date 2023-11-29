@@ -1,12 +1,12 @@
-part of tecfy_database;
+part of '../../tecfy_database.dart';
 
 class TecfyCollectionOperations extends TecfyCollectionInterface {
   Database? _db;
   bool dbLock = false;
   TecfyCollection collection;
   final Map<String, List<TecfyIndexField?>> _columns = {};
-  final Map<String, List<TecfyIndexField>> _newcolumns = {};
-  final Map<String, List<List<TecfyIndexField>>> _indexs = {};
+  final Map<String, List<TecfyIndexField>> _newColumns = {};
+  final Map<String, List<List<TecfyIndexField>>> _indexes = {};
   List<TecfyListener> listeners = [];
 
   Database? get database => _db;
@@ -32,14 +32,14 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       var createCommand = _getCreationCollectionCommandAndOps();
       await _checkPrimaryKeyChanged(collection.name);
       await _db?.execute(createCommand);
-      await _updateColumnsAndIndexs(collection.name);
+      await _updateColumnsAndIndexes(collection.name);
       // _loading = false;
     } catch (e) {
       throw Exception(e.toString());
     }
   }
 
-  Future<void> _updateColumnsAndIndexs(String collectionName) async {
+  Future<void> _updateColumnsAndIndexes(String collectionName) async {
     var dbIndexesName = await _dbIndexesNames(collectionName);
     var newIndexesName = _getNewIndexesNames(collectionName);
     var dbColumns = await _dbColumnsSpecs(collectionName);
@@ -58,8 +58,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   }
 
   Future<void> _updatedNewColumnsValues() async {
-    if (_newcolumns.isEmpty ||
-        (_newcolumns[collection.name]?.isEmpty ?? false)) {
+    if (_newColumns.isEmpty ||
+        (_newColumns[collection.name]?.isEmpty ?? false)) {
       return;
     }
     //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
@@ -71,7 +71,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
           as Map<String, dynamic>);
 
       var isUpdated = false;
-      for (var newColumn in _newcolumns[collection.name]!) {
+      for (var newColumn in _newColumns[collection.name]!) {
         try {
           if (rowValue[newColumn.name] != value[newColumn.name]) {
             rowValue[newColumn.name] == value[newColumn.name];
@@ -98,12 +98,12 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
           .where((element) => !newIndexesName.contains(element))
           .toList();
 
-      for (var unUsedIndexe in unUsedIndexes) {
-        await _db?.rawQuery("DROP INDEX $unUsedIndexe");
+      for (var unUsedIndex in unUsedIndexes) {
+        await _db?.rawQuery("DROP INDEX $unUsedIndex");
       }
     } catch (e) {
       print(
-          'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXException whild drop unused indexs ${e}');
+          'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXException while drop unused indexes $e');
     }
   }
 
@@ -130,8 +130,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
     if (newColumnsToBeAddedList?.isEmpty ?? false) return;
     for (var newColumn in newColumnsToBeAddedList!) {
-      _newcolumns[collection.name] ??= [];
-      _newcolumns[collection.name]?.add(newColumn!);
+      _newColumns[collection.name] ??= [];
+      _newColumns[collection.name]?.add(newColumn!);
       await _db?.rawQuery(
           'ALTER TABLE ${collection.name} ADD COLUMN ${newColumn!.name} ${newColumn.type.name} ${newColumn.nullable ? "" : 'not null'}');
     }
@@ -143,7 +143,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         .where((element) => !dbIndexesName.contains(element))
         .toList();
     if (indexedNeedToBeCreated.isEmpty) return;
-    for (var newIndex in (_indexs[collection.name] as List)) {
+    for (var newIndex in (_indexes[collection.name] as List)) {
       var indName = _getIndexName(newIndex, collection.name);
       if (!indexedNeedToBeCreated.contains(indName)) continue;
       await _db?.rawQuery(
@@ -153,19 +153,19 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   List<String> _getNewIndexesNames(String tableName) {
     List<String> result = [];
-    if (_indexs[tableName] == null) return [];
-    for (var ind in (_indexs[tableName] as List)) {
+    if (_indexes[tableName] == null) return [];
+    for (var ind in (_indexes[tableName] as List)) {
       result.add(_getIndexName(ind, tableName));
     }
     return result;
   }
 
   String _getIndexName(List<TecfyIndexField> ind, String tableName) {
-    var userIndexeNames = ind
+    var userIndexNames = ind
         .map((e) => '${e.name}_${e.type.name}${e.asc ? '_a' : '_d'}')
         .toList();
 
-    return 'idx_${tableName}_' + userIndexeNames.join('_');
+    return 'idx_${tableName}_${userIndexNames.join('_')}';
   }
 
   Future<List<String>> _dbIndexesNames(String tableName) async {
@@ -178,7 +178,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   }
 
   Future<List<TecfyIndexField>?> _dbColumnsSpecs(String tableName,
-      {bool removePrimarykeyAndJsonColumns = true}) async {
+      {bool removePrimaryKeyAndJsonColumns = true}) async {
     var dbColumns = (await _db?.rawQuery("PRAGMA table_info($tableName);"))
         ?.map((e) => TecfyIndexField(
             name: e['name'] as String,
@@ -188,7 +188,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
             nullable: e['notnull'] == 1 ? false : true)
           ..isPrimaryKey = e['pk'] == 1 ? true : false)
         .toList();
-    if (removePrimarykeyAndJsonColumns) {
+    if (removePrimaryKeyAndJsonColumns) {
       dbColumns?.removeWhere((element) => element.name == 'tecfy_json_body');
       // remove primary key column
       dbColumns?.removeWhere(
@@ -207,11 +207,11 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
           : _columns[collectionName]![_primaryKeyIndex(collectionName)]!.name;
 
   Future<void> _checkPrimaryKeyChanged(String collectionName) async {
-    var columnsSpecfs = (await _dbColumnsSpecs(collectionName,
-        removePrimarykeyAndJsonColumns: false));
-    if (columnsSpecfs?.isEmpty ?? false) return;
+    var columnsSpecs = (await _dbColumnsSpecs(collectionName,
+        removePrimaryKeyAndJsonColumns: false));
+    if (columnsSpecs?.isEmpty ?? false) return;
     var dbPrimaryKey =
-        columnsSpecfs?.firstWhere((element) => element.isPrimaryKey == true);
+        columnsSpecs?.firstWhere((element) => element.isPrimaryKey == true);
 
     TecfyIndexField? userPrimaryKey = _columns[collectionName]?.firstWhere(
         (element) => element?.isPrimaryKey == true,
@@ -230,7 +230,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     _columns[collection.name] ??= [];
 
     String command = "CREATE TABLE IF NOT EXISTS ${collection.name}(";
-    bool tecfyIndexFieldsExisits = collection.tecfyIndexFields != null &&
+    bool tecfyIndexFieldsExists = collection.tecfyIndexFields != null &&
         (collection.tecfyIndexFields?.isNotEmpty ?? false);
     if (collection.primaryField != null) {
       _columns[collection.name]
@@ -241,15 +241,15 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       command += "id integer primary key AUTOINCREMENT not null,";
     }
 
-    List<String> indexKeies = [];
+    List<String> indexKeys = [];
 
-    if (tecfyIndexFieldsExisits) {
+    if (tecfyIndexFieldsExists) {
       for (var singleIndexList in collection.tecfyIndexFields!) {
-        for (var singelIndexItem in singleIndexList) {
-          if (!indexKeies.contains(singelIndexItem.name)) {
+        for (var singleIndexItem in singleIndexList) {
+          if (!indexKeys.contains(singleIndexItem.name)) {
             command +=
-                "${singelIndexItem.name} ${singelIndexItem.type.name} ${singelIndexItem.nullable ? "" : 'not null'},";
-            indexKeies.add(singelIndexItem.name);
+                "${singleIndexItem.name} ${singleIndexItem.type.name} ${singleIndexItem.nullable ? "" : 'not null'},";
+            indexKeys.add(singleIndexItem.name);
             // command += singleIndexList
             //         .map((e) =>
             //             "${e.name} ${e.type.name} ${e.nullable ? "" : 'not null'}")
@@ -262,8 +262,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     command += "tecfy_json_body text);";
 
     // create indexes
-    if (tecfyIndexFieldsExisits) {
-      _indexs[collection.name] = collection.tecfyIndexFields ?? [];
+    if (tecfyIndexFieldsExists) {
+      _indexes[collection.name] = collection.tecfyIndexFields ?? [];
       for (var singleIndexList in collection.tecfyIndexFields!) {
         (_columns[collection.name] as List).addAll(singleIndexList);
       }
@@ -339,7 +339,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       int? result;
       //batch?.insert(table, values)
       if (batch != null) {
-        batch?.insert(
+        batch.insert(
           collection.name,
           insertData,
           nullColumnHack: nullColumnHack,
@@ -371,9 +371,9 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   void _sendListersUpdate(String collection, dynamic document) {
     listeners.removeWhere((l) => l.notifier.isClosed);
     listeners.where((l) {
-      var filterCheckValue = (document == null || document.isEmpty)
-          ? true
-          : _filterCheck(document, filter: l.filter);
+      // var filterCheckValue = (document == null || document.isEmpty)
+      //     ? true
+      //     : _filterCheck(document, filter: l.filter);
       return l.collectionName ==
           collection; // && filterCheckValue; // TODO: fix all cases
     }).forEach((l) {
@@ -448,7 +448,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       int? offset}) async {
     if (_db == null) throw Exception("Database Not Initialized!");
     List<dynamic> params = [];
-    var sql;
+    String? sql;
     if (filter == null) {
       sql = null;
     } else {
@@ -473,7 +473,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   Future<int?> searchCount({ITecfyDbFilter? filter}) async {
     if (_db == null) throw Exception("Database Not Initialized!");
     List<dynamic> params = [];
-    var sql;
+    String? sql;
     if (filter == null) {
       sql = null;
     } else {
@@ -493,7 +493,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   Future<bool> searchAny({ITecfyDbFilter? filter}) async {
     if (_db == null) throw Exception("Database Not Initialized!");
     List<dynamic> params = [];
-    var sql;
+    String? sql;
     if (filter == null) {
       sql = null;
     } else {

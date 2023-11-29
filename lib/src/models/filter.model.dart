@@ -1,4 +1,4 @@
-part of tecfy_database;
+part of '../../tecfy_database.dart';
 
 abstract class ITecfyDbFilter {
   late ITecfyDbFilterTypes type;

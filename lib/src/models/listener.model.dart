@@ -1,4 +1,4 @@
-part of tecfy_database;
+part of '../../tecfy_database.dart';
 
 class TecfyListener {
   late TecfyCollectionOperations collection;
