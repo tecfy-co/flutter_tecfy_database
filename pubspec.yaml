@@ -18,6 +18,8 @@ dependencies:
   get_it: ^7.3.0
   collection: ^1.17.2
   path_provider: 
+  path: ^1.8.3
+
 
 dev_dependencies:
   flutter_test:

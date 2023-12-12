@@ -49,7 +49,7 @@ class TecfyDatabase {
         } else {
           databasesPath = await getDatabasesPath();
         }
-        String dbPath = '$databasesPath$path';
+        String dbPath = join(databasesPath, path);
         print('------------------------------ db path $dbPath');
         _database = await openDatabase(
           dbPath,
