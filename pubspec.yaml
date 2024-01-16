@@ -1,6 +1,6 @@
 name: tecfy_database
 description: sqlite database as json database.
-version: 0.0.8
+version: 0.1.0
 homepage: https://github.com/tecfy-co/flutter_tecfy_database
 
 environment:

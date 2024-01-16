@@ -35,6 +35,7 @@ enum TecfyDbOperators {
   startwith,
   endwith,
   contains,
+  arrayIn,
 }
 
 enum ITecfyDbFilterTypes { filter, and, or }

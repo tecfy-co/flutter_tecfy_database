@@ -348,12 +348,21 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       } else {
         //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
         dbLock = true;
-        result = await _db?.insert(
-          collection.name,
-          insertData,
-          nullColumnHack: nullColumnHack,
-          conflictAlgorithm: conflictAlgorithm,
-        );
+        try {
+          result = await _db?.insert(
+            collection.name,
+            insertData,
+            nullColumnHack: nullColumnHack,
+            conflictAlgorithm: conflictAlgorithm,
+          );
+        } catch (e) {
+          var errorString = e.toString();
+          if (errorString.contains('UNIQUE constraint')) {
+            dbLock = false;
+            return false;
+          }
+          throw Exception(errorString);
+        }
         dbLock = false;
       }
 
@@ -519,8 +528,15 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       } else if (f.operator == TecfyDbOperators.isNull) {
       } else if (f.operator == TecfyDbOperators.contains) {
         params.add('%${f.value}%');
+      } else if (f.operator == TecfyDbOperators.arrayIn) {
+        // params.add('(${f.value.map((e) => '"${e.toString()}"').join(',')})');
+        // params.add(f.value.map((e) => '${e.toString()}').toList());
+        // params.add(f.value);
       } else {
         params.add(f.value);
+      }
+      if (f.operator == TecfyDbOperators.arrayIn) {
+        return '${f.field} ${_getFilterOperatorValue(f.operator)} (${f.value.map((e) => "'${e.toString()}'").join(',')})';
       }
       if (f.operator == TecfyDbOperators.isNull) {
         return '${f.field} ${_getFilterOperatorValue(f.operator)} ${f.value == true ? '' : ' not'} null';
@@ -604,6 +620,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       case TecfyDbOperators.contains:
         return 'like';
 
+      case TecfyDbOperators.arrayIn:
+        return 'in';
       default:
         return '';
     }
