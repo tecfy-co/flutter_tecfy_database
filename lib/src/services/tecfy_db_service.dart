@@ -43,18 +43,20 @@ class TecfyDatabase {
 
         print("Database Created");
       } else {
-        if (Platform.isWindows) {
-          databasesPath =
-              '${(await pathLib.getApplicationDocumentsDirectory()).path}\\';
-        } else {
-          databasesPath = await getDatabasesPath();
+        try {
+          if (Platform.isWindows) {
+            databasesPath =
+                '${(await pathLib.getApplicationDocumentsDirectory()).path}\\';
+          } else {
+            databasesPath = await getDatabasesPath();
+            // databasesPath = (await pathLib.getApplicationCacheDirectory()).path;
+          }
+        } catch (e) {
+          databasesPath = "";
         }
         String dbPath = join(databasesPath, path);
         print('------------------------------ db path $dbPath');
-        _database = await openDatabase(
-          dbPath,
-          version: 3,
-        );
+        _database = await openDatabase(dbPath, version: 3);
         print("Database Created, $dbPath");
       }
 
@@ -63,10 +65,11 @@ class TecfyDatabase {
             instanceName: 'tecfyDatabase');
       }
       _loading = false;
-      for (var collectin in collections) {
-        operations?[collectin.name] = TecfyCollectionOperations(collectin);
+      for (var coll in collections) {
+        operations?[coll.name] = TecfyCollectionOperations(coll);
       }
     } catch (e) {
+      _loading = false;
       print(e);
       throw Exception(e.toString());
     }
