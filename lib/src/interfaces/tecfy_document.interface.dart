@@ -1,4 +1,4 @@
-part of '../../tecfy_database.dart';
+part of tecfy_database;
 
 abstract class TecfyDocumentInterface {
   Future<bool> delete({bool notifier = false});

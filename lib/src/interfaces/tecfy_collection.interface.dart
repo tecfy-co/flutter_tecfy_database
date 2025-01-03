@@ -1,4 +1,4 @@
-part of '../../tecfy_database.dart';
+part of tecfy_database;
 
 abstract class TecfyCollectionInterface {
   TecfyDocumentOperations doc([dynamic id]);
