@@ -12,6 +12,12 @@ Sqlite database as json database
 
 install and use it
 
+## for web you'll need to Setup binaries
+
+```
+https://github.com/tekartik/sqflite/tree/master/packages_web/sqflite_common_ffi_web#setup-binaries
+```
+
 ## Usage
 
  examples app at `/example` folder.
