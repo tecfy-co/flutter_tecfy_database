@@ -1,4 +1,4 @@
-library tecfy_database;
+library;
 
 import 'dart:async';
 import 'dart:convert';
@@ -10,6 +10,7 @@ import 'package:get_it/get_it.dart';
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+// ignore: library_prefixes
 import 'package:path_provider/path_provider.dart' as pathLib;
 
 // services

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:tecfy_database/tecfy_database.dart';
@@ -36,7 +38,6 @@ class _RolesPageState extends State<RolesPage> {
             ),
             actions: <Widget>[
               TextButton(
-                child: Text(value != null ? "Update" : 'ADD'),
                 onPressed: value != null
                     ? () async {
                         await db.collection('roles').doc(value['id']).update(
@@ -49,14 +50,14 @@ class _RolesPageState extends State<RolesPage> {
                         Navigator.of(context).pop();
                       }
                     : () async {
-                        var insertResult = await db.collection('roles').add(
-                            data: {
-                              "name": _nameFieldController.text,
-                              "createdAt": DateTime.now()
-                            });
+                        await db.collection('roles').add(data: {
+                          "name": _nameFieldController.text,
+                          "createdAt": DateTime.now()
+                        });
 
                         Navigator.of(context).pop();
                       },
+                child: Text(value != null ? "Update" : 'ADD'),
               ),
               TextButton(
                 child: const Text('CANCEL'),
@@ -98,8 +99,8 @@ class _RolesPageState extends State<RolesPage> {
                     return ListView.builder(
                         itemCount: snapshot.data?.length,
                         itemBuilder: (context, index) => ListTile(
-                            onTap: () => onUpdateClicekd(snapshot.data?[index]),
-                            trailing: traillingWidget(snapshot.data?[index]),
+                            onTap: () => onUpdateClicked(snapshot.data?[index]),
+                            trailing: trailingWidget(snapshot.data?[index]),
                             leading: Text(snapshot.data?[index]['name'])));
                   }
                 }),
@@ -114,15 +115,14 @@ class _RolesPageState extends State<RolesPage> {
     );
   }
 
-  void onUpdateClicekd(value) {
+  void onUpdateClicked(value) {
     _displayDialog(value);
   }
 
-  Widget traillingWidget(value) {
+  Widget trailingWidget(value) {
     return IconButton(
         onPressed: () async {
-          var result =
-              await db.collection('roles').doc(value['id'].toString()).delete();
+          await db.collection('roles').doc(value['id'].toString()).delete();
         },
         icon: Icon(Icons.delete));
   }

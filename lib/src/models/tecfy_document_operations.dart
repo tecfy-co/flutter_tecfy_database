@@ -1,4 +1,4 @@
-part of tecfy_database;
+part of '../../tecfy_database.dart';
 
 class TecfyDocumentOperations extends TecfyDocumentInterface {
   final TecfyCollectionOperations collection;
@@ -26,8 +26,9 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
         batch.delete(collection.collection.name,
             where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
       } else {
-        while (TecfyDatabase.dbLock)
+        while (TecfyDatabase.dbLock) {
           await Future.delayed(Duration(milliseconds: 50));
+        }
         TecfyDatabase.dbLock = true;
         result = await collection.database!.delete(collection.collection.name,
             where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
@@ -50,8 +51,9 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
   @override
   Future<Map<String, dynamic>?> get() async {
     if (id == null || id.toString().isEmpty) return null;
-    while (TecfyDatabase.dbLock)
+    while (TecfyDatabase.dbLock) {
       await Future.delayed(Duration(milliseconds: 50));
+    }
     TecfyDatabase.dbLock = true;
     var result = await collection.database?.query(collection.collection.name,
         where: "$_primaryKeyFieldName = ?", whereArgs: [id], limit: 1);
@@ -94,8 +96,9 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
           conflictAlgorithm: conflictAlgorithm,
         );
       } else {
-        while (TecfyDatabase.dbLock)
+        while (TecfyDatabase.dbLock) {
           await Future.delayed(Duration(milliseconds: 50));
+        }
         TecfyDatabase.dbLock = true;
         result = await collection.database?.update(
           collection.collection.name,
@@ -138,7 +141,7 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
   void _sendListenerUpdateDoc(id) async {
     collection.listeners.removeWhere((l) => l.notifier.isClosed);
 
-    var docListener = collection.listeners
+    collection.listeners
         .where((element) => element.documentId == id)
         .forEach((l) {
       l.sendUpdate();

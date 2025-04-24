@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:project/roles_page.dart';
@@ -103,7 +105,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             actions: <Widget>[
               TextButton(
-                child: Text(value != null ? "Update" : 'ADD'),
                 onPressed: value != null
                     ? () async {
                         await db
@@ -118,8 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         Navigator.of(context).pop();
                       }
                     : () async {
-                        var insertResult =
-                            await db.collection('tasks').add(data: {
+                        await db.collection('tasks').add(data: {
                           "title": _titleFieldController.text,
                           "desc": _descFieldController.text,
                           "isDone": false,
@@ -128,6 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                         Navigator.of(context).pop();
                       },
+                child: Text(value != null ? "Update" : 'ADD'),
               ),
               TextButton(
                 child: const Text('CANCEL'),
@@ -149,11 +150,11 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ListView(
           children: [
             DrawerHeader(
-              child: Text(
+              decoration: BoxDecoration(color: Theme.of(context).primaryColor),
+              child: const Text(
                 'Options',
                 style: TextStyle(color: Colors.white),
               ),
-              decoration: BoxDecoration(color: Theme.of(context).primaryColor),
             ),
             ListTile(
               leading: Icon(Icons.person),
@@ -206,8 +207,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     return ListView.builder(
                         itemCount: snapshot.data?.length,
                         itemBuilder: (context, index) => ListTile(
-                            onTap: () => onUpdateClicekd(snapshot.data?[index]),
-                            trailing: traillingWidget(snapshot.data?[index]),
+                            onTap: () => onUpdateClicked(snapshot.data?[index]),
+                            trailing: trailingWidget(snapshot.data?[index]),
                             leading: Text(snapshot.data?[index]['title'])));
                   }
                 }),
@@ -222,14 +223,14 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void onUpdateClicekd(value) {
+  void onUpdateClicked(value) {
     _displayDialog(value);
   }
 
-  Widget traillingWidget(value) {
+  Widget trailingWidget(value) {
     return IconButton(
         onPressed: () async {
-          var result = await db
+          await db
               .collection('tasks')
               .doc(value['id'].toString())
               .delete(notifier: true);

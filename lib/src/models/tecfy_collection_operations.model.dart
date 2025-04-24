@@ -1,4 +1,4 @@
-part of tecfy_database;
+part of '../../tecfy_database.dart';
 
 class TecfyCollectionOperations extends TecfyCollectionInterface {
   Database? _db;
@@ -78,7 +78,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
             isUpdated = true;
           }
         } catch (e) {
-          print('Exception : ${e}');
+          debugPrint('Exception : $e');
         }
       }
       if (isUpdated) {
@@ -102,7 +102,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         await _db?.rawQuery("DROP INDEX $unUsedIndex");
       }
     } catch (e) {
-      print(
+      debugPrint(
           'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXException while drop unused indexes $e');
     }
   }
@@ -218,7 +218,9 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         orElse: () => null);
 
     if ((dbPrimaryKey?.name == null && userPrimaryKey == null) ||
-        (dbPrimaryKey?.name == 'id' && userPrimaryKey == null)) return;
+        (dbPrimaryKey?.name == 'id' && userPrimaryKey == null)) {
+      return;
+    }
 
     if (dbPrimaryKey?.name != userPrimaryKey?.name) {
       // drop table
@@ -521,9 +523,9 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   String _filterToString(ITecfyDbFilter filter, List<dynamic> params) {
     if (filter.type == ITecfyDbFilterTypes.filter) {
       var f = filter as TecfyDbFilter;
-      if (f.operator == TecfyDbOperators.startwith) {
+      if (f.operator == TecfyDbOperators.startWith) {
         params.add('${f.value}%');
-      } else if (f.operator == TecfyDbOperators.endwith) {
+      } else if (f.operator == TecfyDbOperators.endWith) {
         params.add('%${f.value}');
       } else if (f.operator == TecfyDbOperators.isNull) {
       } else if (f.operator == TecfyDbOperators.contains) {
@@ -548,8 +550,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       var f = filter.type == ITecfyDbFilterTypes.and
           ? (filter as TecfyDbAnd).filters
           : (filter as TecfyDbOr).filters;
-      for (var filt in f) {
-        ands.add(_filterToString(filt, params));
+      for (var filterRow in f) {
+        ands.add(_filterToString(filterRow, params));
       }
 
       return '( ${ands.join(filter.type == ITecfyDbFilterTypes.and ? ' and ' : ' or ')} )';
@@ -610,13 +612,13 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
       case TecfyDbOperators.isLessThan:
         return '<';
-      case TecfyDbOperators.islessThanOrEqualTo:
+      case TecfyDbOperators.isLessThanOrEqualTo:
         return '<=';
       case TecfyDbOperators.isNull:
         return 'is';
 
-      case TecfyDbOperators.startwith:
-      case TecfyDbOperators.endwith:
+      case TecfyDbOperators.startWith:
+      case TecfyDbOperators.endWith:
       case TecfyDbOperators.contains:
         return 'like';
 
@@ -624,67 +626,6 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
         return 'in';
       default:
         return '';
-    }
-  }
-
-  bool _filterCheck(Map<String, dynamic> doc, {ITecfyDbFilter? filter}) {
-    if (filter == null) return true;
-    if (filter.type == ITecfyDbFilterTypes.filter) {
-      var f = filter as TecfyDbFilter;
-      var value = _filterOperatorValueCheck(f.operator, f.value, doc[f.field]);
-
-      return value;
-    } else {
-      List<bool> ands = [];
-      var f = filter.type == ITecfyDbFilterTypes.and
-          ? (filter as TecfyDbAnd).filters
-          : (filter as TecfyDbOr).filters;
-      for (var filt in f) {
-        ands.add(_filterCheck(doc, filter: filt));
-      }
-      if (filter.type == ITecfyDbFilterTypes.and) {
-        for (var a in ands) {
-          if (!a) return false;
-        }
-        return true;
-      } else {
-        for (var a in ands) {
-          if (a) return true;
-        }
-        return false;
-      }
-
-      // return '( ${ands.join(filter.type == ITecfyDbFilterTypes.and ? ' and ' : ' or ')} )';
-    }
-  }
-
-  bool _filterOperatorValueCheck(
-      TecfyDbOperators operator, dynamic v1, dynamic v2) {
-    switch (operator) {
-      case TecfyDbOperators.isEqualTo:
-        return v2 == v1;
-
-      case TecfyDbOperators.isNotEqualTo:
-        return v2 != v1;
-
-      case TecfyDbOperators.isGreaterThan:
-        return v2 > v1;
-
-      case TecfyDbOperators.isGreaterThanOrEqualTo:
-        return v2 >= v1;
-
-      case TecfyDbOperators.isLessThan:
-        return v2 < v1;
-      case TecfyDbOperators.islessThanOrEqualTo:
-        return v2 <= v1;
-      case TecfyDbOperators.startwith:
-        return v2.toString().startsWith(v1);
-      case TecfyDbOperators.endwith:
-        return v2.toString().endsWith(v1);
-      case TecfyDbOperators.contains:
-        return v2.toString().contains(v1);
-      default:
-        return v2 == v1;
     }
   }
 

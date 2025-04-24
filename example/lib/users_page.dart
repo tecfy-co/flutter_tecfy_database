@@ -42,7 +42,6 @@ class _UsersPageState extends State<UsersPage> {
             ),
             actions: <Widget>[
               TextButton(
-                child: Text(value != null ? "Update" : 'ADD'),
                 onPressed: value != null
                     ? () async {
                         await db
@@ -57,8 +56,7 @@ class _UsersPageState extends State<UsersPage> {
                         Navigator.of(context).pop();
                       }
                     : () async {
-                        var insertResult =
-                            await db.collection('users').add(data: {
+                        await db.collection('users').add(data: {
                           "name": _nameFieldController.text,
                           "mobile": _mobileFieldController.text,
                           "createdAt": DateTime.now()
@@ -66,6 +64,7 @@ class _UsersPageState extends State<UsersPage> {
 
                         Navigator.of(context).pop();
                       },
+                child: Text(value != null ? "Update" : 'ADD'),
               ),
               TextButton(
                 child: const Text('CANCEL'),
@@ -107,8 +106,8 @@ class _UsersPageState extends State<UsersPage> {
                     return ListView.builder(
                         itemCount: snapshot.data?.length,
                         itemBuilder: (context, index) => ListTile(
-                            onTap: () => onUpdateClicekd(snapshot.data?[index]),
-                            trailing: traillingWidget(snapshot.data?[index]),
+                            onTap: () => onUpdateClicked(snapshot.data?[index]),
+                            trailing: trailingWidget(snapshot.data?[index]),
                             leading: Text(snapshot.data?[index]['name'])));
                   }
                 }),
@@ -123,15 +122,14 @@ class _UsersPageState extends State<UsersPage> {
     );
   }
 
-  void onUpdateClicekd(value) {
+  void onUpdateClicked(value) {
     _displayDialog(value);
   }
 
-  Widget traillingWidget(value) {
+  Widget trailingWidget(value) {
     return IconButton(
         onPressed: () async {
-          var result =
-              await db.collection('users').doc(value['id'].toString()).delete();
+          await db.collection('users').doc(value['id'].toString()).delete();
         },
         icon: Icon(Icons.delete));
   }

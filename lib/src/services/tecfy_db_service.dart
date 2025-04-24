@@ -1,4 +1,4 @@
-part of tecfy_database;
+part of '../../tecfy_database.dart';
 
 class TecfyDatabase {
   static bool dbLock = false;
@@ -11,6 +11,9 @@ class TecfyDatabase {
   Map<String, TecfyCollectionOperations>? operations;
 
   TecfyCollectionOperations collection(String name) {
+    if(operations == null || operations![name] == null) {
+      throw Exception("Database not initialized or collection not found: $name");
+    }
     return operations![name]!;
   }
 
@@ -41,7 +44,7 @@ class TecfyDatabase {
               version: 3,
             ));
 
-        print("Database Created");
+        debugPrint("Database Created");
       } else {
         try {
           if (Platform.isWindows) {
@@ -55,9 +58,9 @@ class TecfyDatabase {
           databasesPath = "";
         }
         String dbPath = join(databasesPath, path);
-        print('------------------------------ db path $dbPath');
+        debugPrint('------------------------------ db path $dbPath');
         _database = await openDatabase(dbPath, version: 3);
-        print("Database Created, $dbPath");
+        debugPrint("Database Created, $dbPath");
       }
 
       if (_database != null) {
@@ -70,7 +73,7 @@ class TecfyDatabase {
       }
     } catch (e) {
       _loading = false;
-      print(e);
+      debugPrint('$e');
       throw Exception(e.toString());
     }
   }

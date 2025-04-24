@@ -1,5 +1,6 @@
-part of tecfy_database;
+part of '../../tecfy_database.dart';
 
+// ignore: must_be_immutable
 class TecfyIndexField with EquatableMixin {
   final String name;
   final FieldTypes type;

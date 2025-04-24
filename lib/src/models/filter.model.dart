@@ -1,4 +1,4 @@
-part of tecfy_database;
+part of '../../tecfy_database.dart';
 
 abstract class ITecfyDbFilter {
   late ITecfyDbFilterTypes type;
@@ -31,9 +31,9 @@ enum TecfyDbOperators {
   isGreaterThan,
   isGreaterThanOrEqualTo,
   isLessThan,
-  islessThanOrEqualTo,
-  startwith,
-  endwith,
+  isLessThanOrEqualTo,
+  startWith,
+  endWith,
   contains,
   arrayIn,
 }
