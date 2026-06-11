@@ -24,6 +24,7 @@ Store plain Dart `Map<String, dynamic>` documents like you would in a NoSQL stor
 - [Batch operations](#batch-operations)
 - [Schema changes & automatic migration](#schema-changes--automatic-migration)
 - [API reference](#api-reference)
+- [Benchmarks](#benchmarks)
 - [Best practices & gotchas](#best-practices--gotchas)
 - [Platform support](#platform-support)
 
@@ -494,6 +495,29 @@ Future<bool>                       update({required data, toEncodableEx, conflic
 Future<bool>                       delete({notifier = false, batch});
 Stream<Map<String, dynamic>>       stream({filter, orderBy});
 ```
+
+---
+
+## Benchmarks
+
+> ⚠️ Indicative numbers only. Measured with the in-memory FFI backend
+> (`benchmark/tecfy_benchmark.dart`) on Flutter 3.44.1 / Dart 3.12.1 (Windows
+> desktop). Your results will vary with hardware, payload size, and platform.
+
+| Operation | Count | Time | Per op |
+|-----------|------:|-----:|-------:|
+| Batch insert | 5,000 docs | `229` ms | `0.046` ms/doc |
+| Indexed point query | 1,000 | `254` ms | `0.254` ms/query |
+| Full-scan lookup (no index) | 200 | `1223` ms | `6.115` ms/lookup |
+| Update | 1,000 | `214` ms | `0.214` ms/op |
+| Delete | 1,000 | `188` ms | `0.188` ms/op |
+
+Reproduce: `flutter test benchmark/tecfy_benchmark.dart`
+
+**Takeaways:** batched writes are dramatically faster than per-document awaits,
+and indexed point queries are far cheaper per lookup than scanning every row.
+Querying a non-indexed field isn't supported — declare an index for anything you
+filter or sort on.
 
 ---
 
