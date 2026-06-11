@@ -1,0 +1,14 @@
+# A `.pubignore` at the package root takes precedence over the root
+# `.gitignore` for `dart pub publish`, so the build/cache exclusions from
+# `.gitignore` must be repeated here to keep them out of the published archive.
+
+# Build / generated artifacts
+build/
+coverage/
+**/doc/api/
+.dart_tool/
+.fvm/
+pubspec.lock
+
+# Internal planning/design docs — not part of the published package.
+docs/superpowers/
