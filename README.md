@@ -600,16 +600,18 @@ that data yourself first.
 
 ## Platform support
 
-| Platform | Backend | Status |
-|----------|---------|:------:|
-| Android  | `sqflite` | ✅ |
-| iOS      | `sqflite` | ✅ |
-| macOS    | `sqflite` | ✅ |
-| Windows  | `sqflite_common_ffi` | ✅ |
-| Linux    | `sqflite_common_ffi` | ✅ |
-| Web      | `sqflite_common_ffi_web` (WASM — see [Web setup](#web-setup)) | ✅ |
+| Platform | Backend | Status | Notes / limitations |
+|----------|---------|:------:|---------------------|
+| Android  | `sqflite` | ✅ | — |
+| iOS      | `sqflite` | ✅ | — |
+| macOS    | `sqflite` | ✅ | — |
+| Windows  | `sqflite_common_ffi` | ✅ | DB stored under the app documents directory. |
+| Linux    | `sqflite_common_ffi` | ✅ | — |
+| Web      | `sqflite_common_ffi_web` | ✅ | Requires `sqlite3.wasm` + `sqflite_sw.js` in `web/`; in-browser storage limits apply. |
 
-The correct backend is chosen automatically at runtime.
+The correct backend is chosen automatically at runtime. This is a pure-Dart
+package (no platform-channel plugin code of its own); it relies on the sqflite
+family for native SQLite access.
 
 ---
 
