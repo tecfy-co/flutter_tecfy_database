@@ -40,8 +40,8 @@ void main() {
   });
 
   test('limit + offset paginate ordered results', () async {
-    final page = await db.collection('n').search(
-        orderBy: 'v ASC', limit: 3, offset: 3);
+    final page =
+        await db.collection('n').search(orderBy: 'v ASC', limit: 3, offset: 3);
     expect(page.map((e) => e['v']).toList(), [4, 5, 6]);
   });
 }
