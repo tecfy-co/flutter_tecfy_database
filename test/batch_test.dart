@@ -17,8 +17,7 @@ void main() {
     final batch = col.getBatch();
     for (var i = 0; i < 5; i++) {
       await col.add(
-          data: {'title': 't$i', 'priority': i, 'isDone': false},
-          batch: batch);
+          data: {'title': 't$i', 'priority': i, 'isDone': false}, batch: batch);
     }
     expect((await col.get()).isEmpty, isTrue);
 
@@ -35,8 +34,7 @@ void main() {
     final batch = col.getBatch();
     for (var i = 0; i < 3; i++) {
       await col.add(
-          data: {'title': 't$i', 'priority': i, 'isDone': false},
-          batch: batch);
+          data: {'title': 't$i', 'priority': i, 'isDone': false}, batch: batch);
     }
     await col.commitBatch(batch: batch, notify: true);
     await Future.delayed(const Duration(milliseconds: 50));
