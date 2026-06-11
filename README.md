@@ -624,6 +624,9 @@ cd example
 flutter run
 ```
 
+See the [Production Readiness Guide](doc/production_readiness.md) for sizing,
+indexing, backup, migration, and performance guidance.
+
 ---
 
 ## License
