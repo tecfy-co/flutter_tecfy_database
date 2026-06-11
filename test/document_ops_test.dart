@@ -23,8 +23,9 @@ void main() {
   test('doc(id).update replaces the document', () async {
     final col = db.collection('tasks');
     await col.add(data: {'title': 't', 'priority': 1, 'isDone': false});
-    final ok = await col.doc(1).update(
-        data: {'title': 't2', 'priority': 5, 'isDone': true});
+    final ok = await col
+        .doc(1)
+        .update(data: {'title': 't2', 'priority': 5, 'isDone': true});
     expect(ok, isTrue);
     final doc = await col.doc(1).get();
     expect(doc!['title'], 't2');
@@ -48,8 +49,9 @@ void main() {
   test('update on a missing id returns false', () async {
     final col = db.collection('tasks');
     expect(
-        await col.doc(999).update(
-            data: {'title': 'x', 'priority': 1, 'isDone': false}),
+        await col
+            .doc(999)
+            .update(data: {'title': 'x', 'priority': 1, 'isDone': false}),
         isFalse);
   });
 }

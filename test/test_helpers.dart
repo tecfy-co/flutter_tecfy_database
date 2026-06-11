@@ -11,7 +11,8 @@ TecfyDatabase newTestDb(List<TecfyCollection> collections) {
 }
 
 /// A 'tasks' collection with the common indexes used across tests.
-TecfyCollection tasksCollection() => TecfyCollection('tasks', tecfyIndexFields: [
+TecfyCollection tasksCollection() =>
+    TecfyCollection('tasks', tecfyIndexFields: [
       [TecfyIndexField(name: 'title', type: FieldTypes.text, nullable: false)],
       [TecfyIndexField(name: 'priority', type: FieldTypes.integer)],
       [TecfyIndexField(name: 'isDone', type: FieldTypes.boolean)],
