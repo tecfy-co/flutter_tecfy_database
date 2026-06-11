@@ -1,7 +1,9 @@
 name: tecfy_database
-description: sqlite database as json database.
-version: 1.1.3
+description: A fast, realtime, JSON-based, index-driven local database for Flutter, built on SQLite. Schemaless documents with native indexed queries and reactive streams.
+version: 1.2.0
 homepage: https://github.com/tecfy-co/flutter_tecfy_database
+repository: https://github.com/tecfy-co/flutter_tecfy_database
+issue_tracker: https://github.com/tecfy-co/flutter_tecfy_database/issues
 
 environment:
   # sdk: ^3.6.0-0
