@@ -1,3 +1,19 @@
+/// A fast, realtime, JSON-based, index-driven database for Flutter, built on
+/// SQLite.
+///
+/// Store plain `Map<String, dynamic>` documents (Firestore-style
+/// `collection`/`doc` API) while getting native SQLite index speed on the
+/// fields you query. Runs on Android, iOS, macOS, Windows, Linux and Web.
+///
+/// ```dart
+/// final db = TecfyDatabase(collections: [
+///   TecfyCollection('tasks', tecfyIndexFields: [
+///     [TecfyIndexField(name: 'title', type: FieldTypes.text)],
+///   ]),
+/// ]);
+/// await db.isReady();
+/// await db.collection('tasks').add(data: {'title': 'Buy milk'});
+/// ```
 library;
 
 import 'dart:async';

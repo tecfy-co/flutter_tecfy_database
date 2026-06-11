@@ -1,5 +1,8 @@
 part of '../../tecfy_database.dart';
 
+/// The top-level handle for a Tecfy database. Construct it once with all your
+/// [TecfyCollection]s, `await` [isReady], then read/write through
+/// [collection]. Realtime `stream()`s update automatically on notifying writes.
 class TecfyDatabase {
   static bool dbLock = false;
   static Database? _database;
@@ -10,6 +13,8 @@ class TecfyDatabase {
   String databasesPath = "";
   Map<String, TecfyCollectionOperations>? operations;
 
+  /// Returns the operations handle for the declared collection [name].
+  /// Throws if the database isn't initialized or the collection wasn't declared.
   TecfyCollectionOperations collection(String name) {
     if (operations == null || operations![name] == null) {
       throw Exception(
@@ -129,6 +134,7 @@ class TecfyDatabase {
     _columns.clear();
   }
 
+  /// Deletes all rows in every collection (keeps tables and schema).
   Future<void> clearDb() async {
     for (var key in (operations?.keys.toList() ?? [])) {
       await _database?.execute("DELETE FROM $key;");
@@ -136,6 +142,8 @@ class TecfyDatabase {
     _columns.clear();
   }
 
+  /// Resolves to `true` once the database file is open and every collection's
+  /// table and indexes exist. Always `await` this before the first read/write.
   Future<bool> isReady() async {
     while (_database == null || _loading) {
       await Future.delayed(Duration(milliseconds: 10));
