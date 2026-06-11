@@ -34,4 +34,21 @@ void main() {
     expect(all.map((e) => e!['id']).toList(), [1, 2]);
     await db.dispose();
   });
+
+  test('custom primary key is returned by get() read-back', () async {
+    final db = newTestDb([
+      TecfyCollection('users',
+          primaryField: TecfyIndexField(name: 'uid', type: FieldTypes.text),
+          tecfyIndexFields: [
+            [TecfyIndexField(name: 'name', type: FieldTypes.text)],
+          ]),
+    ]);
+    await db.isReady();
+    await db.collection('users').add(data: {'uid': 'u_9', 'name': 'Zed'});
+    final rows = await db.collection('users').get();
+    expect(rows.length, 1);
+    expect(rows.first!['uid'], 'u_9');
+    expect(rows.first!['name'], 'Zed');
+    await db.dispose();
+  });
 }
