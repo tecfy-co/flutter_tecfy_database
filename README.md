@@ -1,5 +1,10 @@
 # Tecfy Database
 
+[![CI](https://github.com/tecfy-co/flutter_tecfy_database/actions/workflows/ci.yml/badge.svg)](https://github.com/tecfy-co/flutter_tecfy_database/actions/workflows/ci.yml)
+[![pub package](https://img.shields.io/pub/v/tecfy_database.svg)](https://pub.dev/packages/tecfy_database)
+[![pub points](https://img.shields.io/pub/points/tecfy_database)](https://pub.dev/packages/tecfy_database/score)
+[![License](https://img.shields.io/badge/license-see%20LICENSE-blue.svg)](LICENSE)
+
 A fast, **realtime**, **JSON‑based**, **index‑driven** database for Flutter — built on top of SQLite.
 
 Store plain Dart `Map<String, dynamic>` documents like you would in a NoSQL store (Firestore‑style `collection` / `doc` API), while getting the raw speed of native SQLite indexes for the fields you actually query on. It runs everywhere Flutter does: **Android, iOS, macOS, Windows, Linux, and Web**.
