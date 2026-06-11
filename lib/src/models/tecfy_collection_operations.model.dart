@@ -508,10 +508,11 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     } else {
       sql = _filterToString(filter, params);
     }
+    final whereClause = sql == null ? '' : 'where $sql';
     //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
     dbLock = true;
     var result = await _db!.rawQuery(
-      'select count(*) as count from ${collection.name} where $sql',
+      'select count(*) as count from ${collection.name} $whereClause',
       params,
     );
     dbLock = false;
@@ -528,10 +529,11 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     } else {
       sql = _filterToString(filter, params);
     }
+    final whereClause = sql == null ? '' : 'where $sql';
     //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
     dbLock = true;
     var result = await _db!.rawQuery(
-      'select 1 as count from ${collection.name} where $sql limit 1',
+      'select 1 as count from ${collection.name} $whereClause limit 1',
       params,
     );
     dbLock = false;
