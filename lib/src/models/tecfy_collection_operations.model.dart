@@ -11,8 +11,13 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   Database? get database => _db;
 
+  /// Completes once the collection table, columns and indexes exist.
+  /// Awaited by [TecfyDatabase.isReady] so queries can't run before the
+  /// table is created (previously a race on fresh installs).
+  late final Future<void> ready;
+
   TecfyCollectionOperations(this.collection) {
-    _initCollection();
+    ready = _initCollection();
   }
 
   @override
@@ -26,14 +31,13 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     return listener.stream;
   }
 
-  void _initCollection() async {
+  Future<void> _initCollection() async {
     try {
       _db = GetIt.I.get<Database>(instanceName: 'tecfyDatabase');
       var createCommand = _getCreationCollectionCommandAndOps();
       await _checkPrimaryKeyChanged(collection.name);
       await _db?.execute(createCommand);
       await _updateColumnsAndIndexes(collection.name);
-      // _loading = false;
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -307,14 +311,20 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   }) async {
     //while (dbLock) await Future.delayed(Duration(milliseconds: 50));
     dbLock = true;
-    var result = batch?.commit(
-      exclusive: exclusive,
-      noResult: noResult,
-      continueOnError: continueOnError,
-    );
-    dbLock = false;
+    List<Object?>? result;
+    try {
+      // listeners must be notified only after the commit lands, otherwise
+      // they re-query the table before the new rows are visible
+      result = await batch?.commit(
+        exclusive: exclusive,
+        noResult: noResult,
+        continueOnError: continueOnError,
+      );
+    } finally {
+      dbLock = false;
+    }
     if (notify) _sendListersUpdate(collection.name, null);
-    return await result;
+    return result;
   }
 
   @override

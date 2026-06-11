@@ -24,9 +24,18 @@ class TecfyDatabase {
   void _initDb({
     required List<TecfyCollection> collections,
   }) async {
-    if (_database != null) return;
-    String path = dbName ?? "tecfy_db.db";
     operations ??= {};
+    if (_database != null) {
+      // the database handle is static and already open (a previous instance
+      // created it); recreate the collection operations so this instance is
+      // usable instead of hanging in isReady() forever
+      for (var coll in collections) {
+        operations?[coll.name] = TecfyCollectionOperations(coll);
+      }
+      _loading = false;
+      return;
+    }
+    String path = dbName ?? "tecfy_db.db";
 
     try {
       if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
@@ -63,14 +72,16 @@ class TecfyDatabase {
         debugPrint("Database Created, $dbPath");
       }
 
-      if (_database != null) {
+      if (_database != null &&
+          !GetIt.I.isRegistered<Database>(instanceName: 'tecfyDatabase')) {
         GetIt.I.registerSingleton<Database>(_database!,
             instanceName: 'tecfyDatabase');
       }
-      _loading = false;
       for (var coll in collections) {
         operations?[coll.name] = TecfyCollectionOperations(coll);
       }
+      // only flip after the operations exist, so isReady() can await them
+      _loading = false;
     } catch (e) {
       _loading = false;
       debugPrint('$e');
@@ -81,6 +92,10 @@ class TecfyDatabase {
   void dispose() async {
     await _database?.close();
     _database = null;
+    if (GetIt.I.isRegistered<Database>(instanceName: 'tecfyDatabase')) {
+      GetIt.I.unregister<Database>(instanceName: 'tecfyDatabase');
+    }
+    operations?.clear();
     _columns.clear();
   }
 
@@ -94,6 +109,17 @@ class TecfyDatabase {
   Future<bool> isReady() async {
     while (_database == null || _loading) {
       await Future.delayed(Duration(milliseconds: 10));
+    }
+    // wait until every collection finished creating its table and indexes;
+    // without this, queries issued right after isReady() could hit
+    // "no such table" on a fresh install
+    for (var operation
+        in operations?.values.toList() ?? <TecfyCollectionOperations>[]) {
+      try {
+        await operation.ready;
+      } catch (e) {
+        debugPrint('collection ${operation.collection.name} init failed: $e');
+      }
     }
     return true;
   }
