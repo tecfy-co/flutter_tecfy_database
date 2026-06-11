@@ -44,4 +44,12 @@ void main() {
         await db.collection('n').search(orderBy: 'v ASC', limit: 3, offset: 3);
     expect(page.map((e) => e['v']).toList(), [4, 5, 6]);
   });
+
+  test('searchCount with no filter counts all rows', () async {
+    expect(await db.collection('n').searchCount(), 10);
+  });
+
+  test('searchAny with no filter is true when rows exist', () async {
+    expect(await db.collection('n').searchAny(), isTrue);
+  });
 }
