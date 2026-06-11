@@ -207,7 +207,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   String _primaryKeyFieldName(String collectionName) =>
       _primaryKeyIndex(collectionName) == -1
-          ? 'id'
+          ? (collection.primaryField?.name ?? 'id')
           : _columns[collectionName]![_primaryKeyIndex(collectionName)]!.name;
 
   Future<void> _checkPrimaryKeyChanged(String collectionName) async {
@@ -432,6 +432,14 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       }
     }
 
+    // The custom primary-key column is removed from [_columns] during init,
+    // so populate it here from the never-mutated [collection.primaryField].
+    // Auto-increment keys are left for SQLite to assign.
+    final pk = collection.primaryField;
+    if (pk != null && !pk.autoIncrement && !result.containsKey(pk.name)) {
+      result[pk.name] = data[pk.name];
+    }
+
     if (result.isEmpty) {
       return null;
     } else {
@@ -573,12 +581,8 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     var data = result.map((e) {
       var dataEx =
           jsonDecode(e['tecfy_json_body'] as String) as Map<String, dynamic>;
-      if (_primaryKeyIndex(tableName) != -1) {
-        dataEx[_columns[tableName]![_primaryKeyIndex(tableName)]!.name] =
-            e[_columns[tableName]![_primaryKeyIndex(tableName)]!.name];
-      } else {
-        dataEx['id'] = e['id'];
-      }
+      final pkName = _primaryKeyFieldName(tableName);
+      dataEx[pkName] = e[pkName];
 
       return dataEx;
     }).toList();
