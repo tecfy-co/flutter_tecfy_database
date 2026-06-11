@@ -11,18 +11,39 @@ class TecfyDatabase {
   Map<String, TecfyCollectionOperations>? operations;
 
   TecfyCollectionOperations collection(String name) {
-    if(operations == null || operations![name] == null) {
-      throw Exception("Database not initialized or collection not found: $name");
+    if (operations == null || operations![name] == null) {
+      throw Exception(
+          "Database not initialized or collection not found: $name");
     }
     return operations![name]!;
   }
 
-  TecfyDatabase({required List<TecfyCollection> collections, this.dbName}) {
-    _initDb(collections: collections);
+  /// Creates the database and immediately begins opening it.
+  ///
+  /// [collections] declares every collection (table) up front.
+  /// [dbName] overrides the on-disk file name (defaults to `tecfy_db.db`).
+  /// [databaseFactory] overrides automatic platform detection — pass
+  /// `databaseFactoryFfi` (with `sqfliteFfiInit()` called once) to run on the
+  /// Dart VM / in tests / on desktop without platform channels.
+  /// [inMemory] opens an ephemeral in-memory database (`inMemoryDatabasePath`)
+  /// and skips `path_provider` resolution. Ideal for tests.
+  TecfyDatabase({
+    required List<TecfyCollection> collections,
+    this.dbName,
+    DatabaseFactory? databaseFactory,
+    bool inMemory = false,
+  }) {
+    _initDb(
+      collections: collections,
+      overrideFactory: databaseFactory,
+      inMemory: inMemory,
+    );
   }
 
   void _initDb({
     required List<TecfyCollection> collections,
+    DatabaseFactory? overrideFactory,
+    bool inMemory = false,
   }) async {
     operations ??= {};
     if (_database != null) {
@@ -38,38 +59,45 @@ class TecfyDatabase {
     String path = dbName ?? "tecfy_db.db";
 
     try {
-      if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
-        // Initialize FFI
-        sqfliteFfiInit();
-        // Change the default factory
-        databaseFactory = databaseFactoryFfi;
-      }
-
-      if (kIsWeb) {
-        databasesPath = path;
-        var factory = databaseFactoryFfiWeb;
-        _database = await factory.openDatabase(databasesPath,
-            options: OpenDatabaseOptions(
-              version: 3,
-            ));
-
-        debugPrint("Database Created");
+      if (overrideFactory != null) {
+        // Test/custom seam: a caller-provided factory (and optional in-memory
+        // path) bypasses all platform detection and path_provider resolution.
+        databaseFactory = overrideFactory;
+        databasesPath = inMemory ? inMemoryDatabasePath : path;
+        _database = await openDatabase(databasesPath, version: 3);
       } else {
-        try {
-          if (Platform.isWindows) {
-            databasesPath =
-                '${(await pathLib.getApplicationDocumentsDirectory()).path}\\';
-          } else {
-            databasesPath = await getDatabasesPath();
-            // databasesPath = (await pathLib.getApplicationCacheDirectory()).path;
-          }
-        } catch (e) {
-          databasesPath = "";
+        if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
+          // Initialize FFI
+          sqfliteFfiInit();
+          // Change the default factory
+          databaseFactory = databaseFactoryFfi;
         }
-        String dbPath = join(databasesPath, path);
-        debugPrint('------------------------------ db path $dbPath');
-        _database = await openDatabase(dbPath, version: 3);
-        debugPrint("Database Created, $dbPath");
+
+        if (kIsWeb) {
+          databasesPath = path;
+          var factory = databaseFactoryFfiWeb;
+          _database = await factory.openDatabase(databasesPath,
+              options: OpenDatabaseOptions(
+                version: 3,
+              ));
+
+          debugPrint("Database Created");
+        } else {
+          try {
+            if (Platform.isWindows) {
+              databasesPath =
+                  '${(await pathLib.getApplicationDocumentsDirectory()).path}\\';
+            } else {
+              databasesPath = await getDatabasesPath();
+            }
+          } catch (e) {
+            databasesPath = "";
+          }
+          String dbPath = join(databasesPath, path);
+          debugPrint('------------------------------ db path $dbPath');
+          _database = await openDatabase(dbPath, version: 3);
+          debugPrint("Database Created, $dbPath");
+        }
       }
 
       if (_database != null &&
@@ -89,7 +117,9 @@ class TecfyDatabase {
     }
   }
 
-  void dispose() async {
+  /// Closes the database, unregisters the GetIt singleton and clears
+  /// operations so a later re-init works. Returns once the file is closed.
+  Future<void> dispose() async {
     await _database?.close();
     _database = null;
     if (GetIt.I.isRegistered<Database>(instanceName: 'tecfyDatabase')) {

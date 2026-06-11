@@ -14,7 +14,13 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 // let callers pass conflictAlgorithm (e.g. ConflictAlgorithm.replace for
 // upserts) and handle Batch without importing sqflite themselves
 export 'package:sqflite_common_ffi/sqflite_ffi.dart'
-    show ConflictAlgorithm, Batch;
+    show
+        ConflictAlgorithm,
+        Batch,
+        DatabaseFactory,
+        databaseFactoryFfi,
+        sqfliteFfiInit,
+        inMemoryDatabasePath;
 // ignore: library_prefixes
 import 'package:path_provider/path_provider.dart' as pathLib;
 
