@@ -1,5 +1,7 @@
 part of '../../tecfy_database.dart';
 
+/// Read/write/stream operations for a single document, addressed by primary
+/// key via `db.collection(name).doc(id)`.
 class TecfyDocumentOperations extends TecfyDocumentInterface {
   final TecfyCollectionOperations collection;
   final dynamic id;

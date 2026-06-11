@@ -1,5 +1,9 @@
 part of '../../tecfy_database.dart';
 
+/// A single indexed field mirrored from your JSON into a real, typed SQLite
+/// column. [name] is the JSON key, [type] the storage [FieldTypes], [nullable]
+/// toggles NOT NULL, [asc] sets index direction, and [autoIncrement] applies
+/// only to an integer primary key.
 // ignore: must_be_immutable
 class TecfyIndexField with EquatableMixin {
   final String name;

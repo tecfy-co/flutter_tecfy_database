@@ -1,5 +1,9 @@
 part of '../../tecfy_database.dart';
 
+/// Read/write/stream operations for one collection. Obtain via
+/// `db.collection(name)`. Queries (`search`, `searchCount`, `searchAny`,
+/// `get`, `stream`, `count`) run against indexed columns; reads always return
+/// your full original document.
 class TecfyCollectionOperations extends TecfyCollectionInterface {
   Database? _db;
   bool dbLock = false;
@@ -294,14 +298,19 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     }
   }
 
+  /// Returns a new sqflite [Batch] for queuing writes; commit with [commitBatch].
   Batch? getBatch() {
     return database?.batch();
   }
 
+  /// Forces every open stream on this collection to re-query and re-emit.
   void refreshListers() {
     _sendListersUpdate(collection.name, null);
   }
 
+  /// Commits a [batch] atomically, then (if [notify]) fires a single update to
+  /// this collection's streams. [exclusive]/[noResult]/[continueOnError] are
+  /// passed through to sqflite.
   Future<List<Object?>?> commitBatch({
     required Batch? batch,
     bool notify = true,
