@@ -31,6 +31,9 @@ Store plain Dart `Map<String, dynamic>` documents like you would in a NoSQL stor
 - [API reference](#api-reference)
 - [Benchmarks](#benchmarks)
 - [Best practices & gotchas](#best-practices--gotchas)
+- [FAQ](#faq)
+- [Troubleshooting](#troubleshooting)
+- [Migration guide](#migration-guide)
 - [Platform support](#platform-support)
 
 ---
@@ -333,12 +336,13 @@ final done = await db.collection('tasks').search(
   limit: 20,
 );
 
-// Combined: title starts with "Re" AND created after a date
+// Combined: title starts with "Re" AND created after a date.
+// NOTE: datetime index columns compare as epoch ints — pass millisecondsSinceEpoch.
 final recentReplies = await db.collection('tasks').search(
   filter: TecfyDbAnd([
-    TecfyDbFilter('title',     TecfyDbOperators.startWith, 'Re'),
+    TecfyDbFilter('title', TecfyDbOperators.startWith, 'Re'),
     TecfyDbFilter('createdAt', TecfyDbOperators.isGreaterThan,
-        DateTime.now().subtract(const Duration(days: 7))),
+        DateTime.now().subtract(const Duration(days: 7)).millisecondsSinceEpoch),
   ]),
 );
 
@@ -535,6 +539,62 @@ filter or sort on.
 - **Use batches for bulk writes.** One `commitBatch` is dramatically faster and emits a single notification.
 - **`add` returns `false` on a UNIQUE constraint** instead of throwing — check the result when inserting with unique keys.
 - **Always `await db.isReady()`** before the first operation.
+
+---
+
+## FAQ
+
+**Is this a real NoSQL database?** No — it's SQLite under the hood with a
+document-style API. You get schemaless JSON documents plus typed, indexed
+columns for the fields you query.
+
+**Can I query a field that isn't indexed?** No. Only declared index fields are
+queryable (`search`/`filter`/`orderBy`/`groupBy`). Non-indexed fields are stored
+and returned in the document but not directly queryable.
+
+**Does it support transactions?** It exposes `Batch` for atomic, single-commit
+writes (see [Batch operations](#batch-operations)). There is no separate
+`transaction()` API.
+
+**How do I do a partial update?** `update` replaces the whole document. Read it
+first (`await doc(id).get()`), merge, then update.
+
+**Is it null-safe / which SDKs?** Dart `>=2.19.6 <4.0.0`, Flutter `>=1.17.0`.
+
+## Troubleshooting
+
+- **`no such table` right after startup** — you didn't `await db.isReady()`
+  before your first query. Always await it.
+- **Web: `databaseFactoryFfiWeb` / missing wasm** — copy `sqlite3.wasm` and
+  `sqflite_sw.js` into `web/` (see [Web setup](#web-setup)).
+- **Filtering by a `DateTime` throws `Invalid argument`** — datetime *index
+  columns* store an epoch integer. Pass the epoch value
+  (`yourDate.millisecondsSinceEpoch`) as the filter `value`, not a `DateTime`
+  object. `add`/`get` of `DateTime` fields works directly; only filter values
+  need the integer form.
+- **`add` returned `false`** — a UNIQUE constraint (usually a duplicate primary
+  key) blocked the insert. It returns `false` instead of throwing.
+- **Stream didn't update** — the write must notify: `update`/`delete` need
+  `notifier: true`; `commitBatch` needs `notify: true` (default true).
+
+## Migration guide
+
+### Evolving your schema
+Edit your `TecfyCollection` declarations and restart — Tecfy reconciles
+automatically (see [Schema changes & automatic migration](#schema-changes--automatic-migration)).
+Adding/removing index fields is safe for your document data (it lives in the
+JSON body). **Changing a primary key drops and recreates the table** — migrate
+that data yourself first.
+
+### Upgrading to 1.2.0
+- New optional `TecfyDatabase` params `databaseFactory` and `inMemory` —
+  backward compatible; existing constructors are unaffected.
+- `dispose()` now returns `Future<void>` so you can `await` a clean close.
+- New exports: `DatabaseFactory`, `databaseFactoryFfi`, `sqfliteFfiInit`,
+  `inMemoryDatabasePath` (handy for writing your own tests).
+- Bug fixes: custom (non-`id`) primary keys now work for `doc()` lookups and
+  read-back; `searchCount()`/`searchAny()`/`count()` with no filter now count
+  all rows (previously returned 0).
 
 ---
 
