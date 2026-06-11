@@ -138,7 +138,7 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
     return listener.stream;
   }
 
-  void _sendListenerUpdateDoc(id) async {
+  void _sendListenerUpdateDoc(dynamic id) async {
     collection.listeners.removeWhere((l) => l.notifier.isClosed);
 
     collection.listeners
