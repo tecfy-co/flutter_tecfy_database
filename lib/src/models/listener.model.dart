@@ -10,27 +10,49 @@ class TecfyListener {
   TecfyListener(this.collection, this.collectionName, this.notifier,
       {this.orderBy, this.filter, this.documentId});
 
-  void sendUpdate() async {
-    if (notifier is StreamController<int>) {
-      sendUpdateCount();
+  bool _running = false;
+  bool _pending = false;
+
+  /// Re-runs this listener's query and emits the result. Calls made while a
+  /// query is already in flight are coalesced into one follow-up run, so a
+  /// burst of writes costs at most two queries and results never arrive out
+  /// of order.
+  void sendUpdate() {
+    if (notifier.isClosed) return;
+    if (_running) {
+      _pending = true;
       return;
     }
-    if (documentId != null) {
-      collection.doc(documentId).get().then((e) {
-        if (e != null) {
-          notifier.add(e);
+    _run();
+  }
+
+  /// Kept for backward compatibility; count listeners go through [sendUpdate].
+  void sendUpdateCount() => sendUpdate();
+
+  Future<void> _run() async {
+    _running = true;
+    try {
+      do {
+        _pending = false;
+        try {
+          final value = await _query();
+          if (value != null && !notifier.isClosed) notifier.add(value);
+        } catch (e, s) {
+          if (!notifier.isClosed) notifier.addError(e, s);
         }
-      });
-    } else {
-      collection.search(filter: filter, orderBy: orderBy).then((value) {
-        notifier.add(value);
-      });
+      } while (_pending && !notifier.isClosed);
+    } finally {
+      _running = false;
     }
   }
 
-  void sendUpdateCount() async {
-    collection.searchCount(filter: filter).then((value) {
-      notifier.add(value);
-    });
+  Future<dynamic> _query() {
+    if (notifier is StreamController<int>) {
+      return collection.searchCount(filter: filter);
+    }
+    if (documentId != null) {
+      return collection.doc(documentId).get();
+    }
+    return collection.search(filter: filter, orderBy: orderBy);
   }
 }

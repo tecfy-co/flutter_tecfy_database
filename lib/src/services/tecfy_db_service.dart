@@ -4,7 +4,11 @@ part of '../../tecfy_database.dart';
 /// [TecfyCollection]s, `await` [isReady], then read/write through
 /// [collection]. Realtime `stream()`s update automatically on notifying writes.
 class TecfyDatabase {
-  static bool dbLock = false;
+  /// Serializes single-document reads and writes.
+  static final _TecfyMutex _docLock = _TecfyMutex();
+
+  /// True while a document read/write holds (or is queued for) the lock.
+  static bool get dbLock => _docLock.isLocked;
   static Database? _database;
   final Map<String, List<TecfyIndexField?>> _columns = {};
   bool _loading = true;

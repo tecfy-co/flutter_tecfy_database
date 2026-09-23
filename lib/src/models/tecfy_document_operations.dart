@@ -28,13 +28,9 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
         batch.delete(collection.collection.name,
             where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
       } else {
-        while (TecfyDatabase.dbLock) {
-          await Future.delayed(Duration(milliseconds: 50));
-        }
-        TecfyDatabase.dbLock = true;
-        result = await collection.database!.delete(collection.collection.name,
-            where: "$_primaryKeyFieldName = ?", whereArgs: [id]);
-        TecfyDatabase.dbLock = false;
+        result = await TecfyDatabase._docLock.run(() => collection.database!
+            .delete(collection.collection.name,
+                where: "$_primaryKeyFieldName = ?", whereArgs: [id]));
       }
       if (result != 0) {
         if (notifier) {
@@ -53,13 +49,9 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
   @override
   Future<Map<String, dynamic>?> get() async {
     if (id == null || id.toString().isEmpty) return null;
-    while (TecfyDatabase.dbLock) {
-      await Future.delayed(Duration(milliseconds: 50));
-    }
-    TecfyDatabase.dbLock = true;
-    var result = await collection.database?.query(collection.collection.name,
-        where: "$_primaryKeyFieldName = ?", whereArgs: [id], limit: 1);
-    TecfyDatabase.dbLock = false;
+    var result = await TecfyDatabase._docLock.run(() async =>
+        collection.database?.query(collection.collection.name,
+            where: "$_primaryKeyFieldName = ?", whereArgs: [id], limit: 1));
 
     if (result != null && result.isNotEmpty) {
       return jsonDecode(((result.first)['tecfy_json_body'] as String));
@@ -98,18 +90,14 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
           conflictAlgorithm: conflictAlgorithm,
         );
       } else {
-        while (TecfyDatabase.dbLock) {
-          await Future.delayed(Duration(milliseconds: 50));
-        }
-        TecfyDatabase.dbLock = true;
-        result = await collection.database?.update(
-          collection.collection.name,
-          updateData,
-          where: "$_primaryKeyFieldName = ?",
-          whereArgs: [id],
-          conflictAlgorithm: conflictAlgorithm,
-        );
-        TecfyDatabase.dbLock = false;
+        result = await TecfyDatabase._docLock
+            .run<int?>(() async => await collection.database?.update(
+                  collection.collection.name,
+                  updateData,
+                  where: "$_primaryKeyFieldName = ?",
+                  whereArgs: [id],
+                  conflictAlgorithm: conflictAlgorithm,
+                ));
       }
       if (result != 0) {
         if (notifier) {
@@ -130,20 +118,15 @@ class TecfyDocumentOperations extends TecfyDocumentInterface {
   @override
   Stream<Map<String, dynamic>> stream(
       {ITecfyDbFilter? filter, String? orderBy}) {
-    var listener = StreamController<Map<String, dynamic>>.broadcast();
-    var lis = TecfyListener(collection, collection.collection.name, listener,
+    return collection._listenerStream<Map<String, dynamic>>(
         filter: filter, orderBy: orderBy, documentId: id);
-
-    collection.listeners.add(lis);
-    lis.sendUpdate();
-
-    return listener.stream;
   }
 
   void _sendListenerUpdateDoc(dynamic id) async {
     collection.listeners.removeWhere((l) => l.notifier.isClosed);
 
     collection.listeners
+        .toList()
         .where((element) => element.documentId == id)
         .forEach((l) {
       l.sendUpdate();

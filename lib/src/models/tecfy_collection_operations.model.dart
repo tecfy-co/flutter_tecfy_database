@@ -27,12 +27,28 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   @override
   Stream<List<Map<String, dynamic>>> stream(
       {ITecfyDbFilter? filter, String? orderBy}) {
-    var listener = StreamController<List<Map<String, dynamic>>>.broadcast();
-    var lis = TecfyListener(this, collection.name, listener,
+    return _listenerStream<List<Map<String, dynamic>>>(
         filter: filter, orderBy: orderBy);
-    listeners.add(lis);
-    lis.sendUpdate();
-    return listener.stream;
+  }
+
+  /// A broadcast stream backed by a [TecfyListener] that is registered only
+  /// while the stream has subscribers. It runs its first query when the first
+  /// subscriber arrives and unregisters when the last one cancels, so a stream
+  /// created and dropped (e.g. inside a widget's build) no longer leaves a
+  /// listener behind that re-queries on every write.
+  Stream<T> _listenerStream<T>(
+      {ITecfyDbFilter? filter, String? orderBy, dynamic documentId}) {
+    late final TecfyListener lis;
+    final controller = StreamController<T>.broadcast(
+      onListen: () {
+        listeners.add(lis);
+        lis.sendUpdate();
+      },
+      onCancel: () => listeners.remove(lis),
+    );
+    lis = TecfyListener(this, collection.name, controller,
+        filter: filter, orderBy: orderBy, documentId: documentId);
+    return controller.stream;
   }
 
   Future<void> _initCollection() async {
@@ -291,7 +307,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
               orderBy: orderBy, groupBy: groupBy) ??
           [];
       dbLock = false;
-      var data = _returnBody(collection.name, result);
+      var data = await _returnBodyAsync(collection.name, result);
       return data;
     } catch (e) {
       throw Exception(e);
@@ -400,7 +416,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   void _sendListersUpdate(String collection, dynamic document) {
     listeners.removeWhere((l) => l.notifier.isClosed);
-    listeners.where((l) {
+    listeners.toList().where((l) {
       // var filterCheckValue = (document == null || document.isEmpty)
       //     ? true
       //     : _filterCheck(document, filter: l.filter);
@@ -469,11 +485,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   @override
   Stream<int> count({ITecfyDbFilter? filter}) {
-    var listener = StreamController<int>.broadcast();
-    var lis = TecfyListener(this, collection.name, listener, filter: filter);
-    listeners.add(lis);
-    lis.sendUpdateCount();
-    return listener.stream;
+    return _listenerStream<int>(filter: filter);
   }
 
   @override
@@ -504,7 +516,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       offset: offset,
     );
     dbLock = false;
-    return _returnBody(collection.name, result);
+    return _returnBodyAsync(collection.name, result);
   }
 
   @override
@@ -587,38 +599,31 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
     }
   }
 
-  List<Map<String, dynamic>> _returnBody(
-      String tableName, List<Map<String, dynamic>> result) {
-    var data = result.map((e) {
-      var dataEx =
-          jsonDecode(e['tecfy_json_body'] as String) as Map<String, dynamic>;
-      final pkName = _primaryKeyFieldName(tableName);
-      dataEx[pkName] = e[pkName];
+  /// Result sets at least this large are JSON-decoded on a background isolate
+  /// so big reads (and every stream re-query over them) don't block the UI.
+  static const int _isolateDecodeThreshold = 500;
 
-      return dataEx;
-    }).toList();
-    var checkList = _columns[tableName]
-        ?.where((element) => element?.type.name == FieldTypes.datetime.name)
-        .toList();
-    if (checkList?.isNotEmpty ?? false) {
-      for (var itemInCheckList in checkList ?? []) {
-        var itemInCheckListCast = (itemInCheckList as TecfyIndexField);
-        data = data.map((e) {
-          var value = e[itemInCheckListCast.name];
-          if (value != null) {
-            if (value is int) {
-              e[itemInCheckListCast.name] =
-                  DateTime.fromMillisecondsSinceEpoch(value);
-            } else if (value is String) {
-              e[itemInCheckListCast.name] = DateTime.tryParse(value);
-            }
-          }
-          return e;
-        }).toList();
-      }
+  Future<List<Map<String, dynamic>>> _returnBodyAsync(
+      String tableName, List<Map<String, dynamic>> result) async {
+    final job = _decodeJob(tableName, result);
+    if (kIsWeb || job.rows.length < _isolateDecodeThreshold) {
+      return _decodeTecfyRows(job);
     }
+    return compute(_decodeTecfyRows, job);
+  }
 
-    return data;
+  _TecfyDecodeJob _decodeJob(
+      String tableName, List<Map<String, dynamic>> result) {
+    final pkName = _primaryKeyFieldName(tableName);
+    final dateFields = (_columns[tableName] ?? [])
+        .where((c) => c?.type.name == FieldTypes.datetime.name)
+        .map((c) => c!.name)
+        .toList();
+    return _TecfyDecodeJob(
+      result.map((e) => [e['tecfy_json_body'] as String, e[pkName]]).toList(),
+      pkName,
+      dateFields,
+    );
   }
 
   String _getFilterOperatorValue(TecfyDbOperators operator) {

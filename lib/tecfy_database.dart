@@ -53,6 +53,8 @@ part 'src/models/tecfy_document_operations.dart';
 
 // utils
 part 'src/utils/field_types.util.dart';
+part 'src/utils/decode.util.dart';
+part 'src/utils/mutex.util.dart';
 
 // interfaces
 part 'src/interfaces/tecfy_collection.interface.dart';

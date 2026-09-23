@@ -1,3 +1,17 @@
+## 1.2.2
+
+### Fixed
+
+* **Stream listener leak**: `stream()`, `count()` and `doc().stream()` now register their listener only while the stream has subscribers and unregister it when the last one cancels. Previously every call added a listener that was never removed, so streams created inside a widget's `build()` piled up and each write re-ran all of their queries.
+* **Document lock could stay held forever**: the global lock around `doc().get()/update()/delete()` is now a FIFO mutex that is always released, even when the query throws. Waiters no longer poll every 50 ms.
+
+### Changed
+
+* Re-queries triggered while a listener's query is already running are coalesced into one follow-up run, so a burst of writes costs at most two queries per stream and results can't arrive out of order.
+* Query errors inside a stream are now delivered to the stream as errors instead of escaping as unhandled async errors.
+* `get()`/`search()` results of 500+ rows are JSON-decoded on a background isolate (not on web).
+* `TecfyDatabase.dbLock` is now read-only.
+
 ## 1.2.0
 
 ### Added
