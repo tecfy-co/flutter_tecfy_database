@@ -5,6 +5,10 @@
 * **Stream listener leak**: `stream()`, `count()` and `doc().stream()` now register their listener only while the stream has subscribers and unregister it when the last one cancels. Previously every call added a listener that was never removed, so streams created inside a widget's `build()` piled up and each write re-ran all of their queries.
 * **Document lock could stay held forever**: the global lock around `doc().get()/update()/delete()` is now a FIFO mutex that is always released, even when the query throws. Waiters no longer poll every 50 ms.
 
+### Added
+
+* `stream(limit:)`: cap a collection stream to the first N rows, e.g. `stream(orderBy: 'time DESC', limit: 100)` for a paged live list.
+
 ### Changed
 
 * Re-queries triggered while a listener's query is already running are coalesced into one follow-up run, so a burst of writes costs at most two queries per stream and results can't arrive out of order.

@@ -6,9 +6,10 @@ class TecfyListener {
   late StreamController notifier;
   ITecfyDbFilter? filter;
   String? orderBy;
+  int? limit;
   dynamic documentId;
   TecfyListener(this.collection, this.collectionName, this.notifier,
-      {this.orderBy, this.filter, this.documentId});
+      {this.orderBy, this.filter, this.limit, this.documentId});
 
   bool _running = false;
   bool _pending = false;
@@ -53,6 +54,6 @@ class TecfyListener {
     if (documentId != null) {
       return collection.doc(documentId).get();
     }
-    return collection.search(filter: filter, orderBy: orderBy);
+    return collection.search(filter: filter, orderBy: orderBy, limit: limit);
   }
 }

@@ -5,7 +5,7 @@ part of '../../tecfy_database.dart';
 /// toggles NOT NULL, [asc] sets index direction, and [autoIncrement] applies
 /// only to an integer primary key.
 // ignore: must_be_immutable
-class TecfyIndexField with EquatableMixin {
+class TecfyIndexField with Equatable {
   final String name;
   final FieldTypes type;
   final bool nullable;

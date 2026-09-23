@@ -18,7 +18,7 @@ dependencies:
   sqflite: ^2.4.1
   sqflite_common_ffi: ^2.3.4+3
   intl: ^0.20.2
-  equatable: ^2.0.7
+  equatable: ^2.1.0
   get_it: ^9.2.1
   collection: ^1.19.0
   path_provider: ^2.1.5

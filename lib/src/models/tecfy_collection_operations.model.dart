@@ -26,9 +26,9 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
 
   @override
   Stream<List<Map<String, dynamic>>> stream(
-      {ITecfyDbFilter? filter, String? orderBy}) {
+      {ITecfyDbFilter? filter, String? orderBy, int? limit}) {
     return _listenerStream<List<Map<String, dynamic>>>(
-        filter: filter, orderBy: orderBy);
+        filter: filter, orderBy: orderBy, limit: limit);
   }
 
   /// A broadcast stream backed by a [TecfyListener] that is registered only
@@ -37,7 +37,10 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
   /// created and dropped (e.g. inside a widget's build) no longer leaves a
   /// listener behind that re-queries on every write.
   Stream<T> _listenerStream<T>(
-      {ITecfyDbFilter? filter, String? orderBy, dynamic documentId}) {
+      {ITecfyDbFilter? filter,
+      String? orderBy,
+      int? limit,
+      dynamic documentId}) {
     late final TecfyListener lis;
     final controller = StreamController<T>.broadcast(
       onListen: () {
@@ -47,7 +50,7 @@ class TecfyCollectionOperations extends TecfyCollectionInterface {
       onCancel: () => listeners.remove(lis),
     );
     lis = TecfyListener(this, collection.name, controller,
-        filter: filter, orderBy: orderBy, documentId: documentId);
+        filter: filter, orderBy: orderBy, limit: limit, documentId: documentId);
     return controller.stream;
   }
 

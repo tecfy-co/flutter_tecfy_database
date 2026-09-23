@@ -70,6 +70,23 @@ void main() {
     await sub.cancel();
   });
 
+  test('a limited stream emits only the first rows and stays live', () async {
+    final col = db.collection('tasks');
+    for (var i = 0; i < 5; i++) {
+      await col.add(data: task(i), notify: false);
+    }
+    final emissions = <List<int>>[];
+    final sub = col.stream(orderBy: 'priority DESC', limit: 3).listen((rows) =>
+        emissions.add(rows.map((r) => r['priority'] as int).toList()));
+    await Future.delayed(const Duration(milliseconds: 50));
+    expect(emissions.last, [4, 3, 2]);
+
+    await col.add(data: task(9));
+    await Future.delayed(const Duration(milliseconds: 50));
+    expect(emissions.last, [9, 4, 3]);
+    await sub.cancel();
+  });
+
   test('large result sets decode off-thread with the same shape', () async {
     final col = db.collection('tasks');
     final batch = col.getBatch();

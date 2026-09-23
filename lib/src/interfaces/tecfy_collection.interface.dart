@@ -5,9 +5,11 @@ abstract class TecfyCollectionInterface {
 
   /// attach stream to collection .
   /// for ITecfyDbFilter you can use (TecfyDbFilter,TecfyDbAnd,TecfyDbOr)
+  /// [limit] caps every emission to the first N rows (combine with [orderBy]).
   Stream<List<Map<String, dynamic>>> stream({
     ITecfyDbFilter? filter,
     String? orderBy,
+    int? limit,
   });
 
   /// Fetch the documents for this collection
